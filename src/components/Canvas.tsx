@@ -188,7 +188,7 @@ export const Canvas = ({
         }, i * 140);
       });
     }
-  }, [mode, nodes, objects, orchestrator, physics, addEffect, setNodes]);
+  }, [mode, nodes, objects, orchestrator, physics, setNodes]);
 
   // Handle broadcast trigger from Controls button
   useEffect(() => {
