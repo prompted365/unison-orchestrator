@@ -55,13 +55,29 @@ export const Canvas = ({
     const orchestratorNode = nodes.find(n => n.type === 'orchestrator');
     if (!orchestratorNode) return;
 
-    // Create initial wave
-    addEffect({
-      type: 'ring',
-      x: orchestratorNode.x,
-      y: orchestratorNode.y,
-      color: mode === 'acoustic' ? '#ff6b35' : mode === 'light' ? '#4ecdc4' : '#667eea'
-    });
+    // Create distinct initial broadcast wave for each mode
+    if (mode === 'acoustic') {
+      addEffect({
+        type: 'acoustic-wave',
+        x: orchestratorNode.x,
+        y: orchestratorNode.y,
+        duration: 2500
+      });
+    } else if (mode === 'light') {
+      addEffect({
+        type: 'ring',
+        x: orchestratorNode.x,
+        y: orchestratorNode.y,
+        duration: 2000
+      });
+    } else if (mode === 'gravity') {
+      addEffect({
+        type: 'gravity-wave',
+        x: orchestratorNode.x,
+        y: orchestratorNode.y,
+        duration: 3000
+      });
+    }
 
     // Process agents with physics
     const agents = nodes.filter(n => n.type === 'agent');

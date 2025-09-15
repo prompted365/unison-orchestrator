@@ -9,6 +9,10 @@ export const EffectComponent = ({ effect }: EffectComponentProps) => {
     switch (effect.type) {
       case 'ring':
         return 'wave-ring';
+      case 'acoustic-wave':
+        return 'acoustic-wave';
+      case 'gravity-wave':
+        return 'gravity-wave';
       case 'echo':
         return 'echo-ring';
       case 'smear':
@@ -16,9 +20,9 @@ export const EffectComponent = ({ effect }: EffectComponentProps) => {
       case 'metric':
         return 'gravity-metric';
       case 'arc':
-        return 'wave-ring'; // Similar to ring
+        return 'wave-ring';
       case 'ray':
-        return 'wave-ring'; // Light ray effect
+        return 'light-ray';
       default:
         return '';
     }

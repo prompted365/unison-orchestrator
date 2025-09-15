@@ -214,29 +214,54 @@ All colors MUST be HSL.
     background: radial-gradient(circle, rgba(147,51,234,0.3) 0%, transparent 70%);
   }
   
-  /* Effect styles */
+  /* Effect styles - Enhanced for distinct mode broadcasts */
   .wave-ring {
-    @apply absolute rounded-full pointer-events-none opacity-75;
-    border: 2px solid hsl(var(--light-color));
-    animation: expand-fade 2s ease-out forwards;
+    @apply absolute rounded-full pointer-events-none;
+    border: 3px solid hsl(var(--light-color));
+    animation: light-wave-expand 2s ease-out forwards;
+  }
+  
+  .acoustic-wave {
+    @apply absolute rounded-full pointer-events-none;
+    border: 4px solid hsl(var(--acoustic-color));
+    animation: acoustic-wave-expand 2.5s ease-out forwards;
+    box-shadow: 0 0 20px hsl(var(--acoustic-color) / 0.6);
   }
   
   .echo-ring {
-    @apply absolute rounded-full pointer-events-none opacity-50;
-    border: 2px dashed hsl(var(--acoustic-color));
-    animation: expand-fade 2s ease-out forwards;
+    @apply absolute rounded-full pointer-events-none;
+    border: 3px dashed hsl(var(--acoustic-color));
+    animation: echo-bounce 1.8s ease-out forwards;
+    opacity: 0.8;
   }
   
   .light-smear {
     @apply absolute rounded-full pointer-events-none;
-    background: radial-gradient(circle, rgba(78,205,196,0.3) 0%, transparent 70%);
-    animation: fade-out 1.8s ease-out forwards;
+    background: radial-gradient(circle, hsl(var(--light-color) / 0.4) 0%, transparent 70%);
+    animation: light-smear-pulse 1.8s ease-out forwards;
+    box-shadow: 0 0 30px hsl(var(--light-color) / 0.5);
+  }
+  
+  .light-ray {
+    @apply absolute pointer-events-none;
+    background: linear-gradient(90deg, hsl(var(--light-color)) 0%, transparent 100%);
+    border-radius: 2px;
+    animation: light-ray-shoot 1.2s ease-out forwards;
+    box-shadow: 0 0 10px hsl(var(--light-color) / 0.8);
   }
   
   .gravity-metric {
     @apply absolute rounded-full pointer-events-none;
-    background: radial-gradient(ellipse, rgba(147,51,234,0.25) 0%, transparent 80%);
-    animation: pulse-metric 3s ease-in-out infinite;
+    background: radial-gradient(ellipse, hsl(var(--gravity-color) / 0.3) 0%, transparent 80%);
+    animation: gravity-warp 3s ease-in-out infinite;
+    border: 2px solid hsl(var(--gravity-color) / 0.5);
+  }
+  
+  .gravity-wave {
+    @apply absolute rounded-full pointer-events-none;
+    border: 3px solid hsl(var(--gravity-color));
+    animation: gravity-wave-expand 3s ease-out forwards;
+    box-shadow: 0 0 25px hsl(var(--gravity-color) / 0.7);
   }
   
   /* Modal pin styles */
@@ -274,5 +299,178 @@ All colors MUST be HSL.
     background: hsl(var(--gravity-color) / 0.2);
     border: 1px solid hsl(var(--gravity-color) / 0.5);
     color: hsl(var(--gravity-color));
+  }
+}
+
+@layer utilities {
+  /* Enhanced broadcast animations */
+  @keyframes acoustic-wave-expand {
+    0% {
+      width: 4px;
+      height: 4px;
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(1.1);
+      box-shadow: 0 0 30px hsl(var(--acoustic-color) / 0.8);
+    }
+    100% {
+      width: 400px;
+      height: 400px;
+      opacity: 0;
+      transform: scale(1);
+    }
+  }
+  
+  @keyframes light-wave-expand {
+    0% {
+      width: 4px;
+      height: 4px;
+      opacity: 1;
+      box-shadow: 0 0 10px hsl(var(--light-color));
+    }
+    30% {
+      opacity: 0.9;
+      box-shadow: 0 0 40px hsl(var(--light-color) / 0.8);
+    }
+    100% {
+      width: 500px;
+      height: 500px;
+      opacity: 0;
+      box-shadow: 0 0 60px hsl(var(--light-color) / 0.3);
+    }
+  }
+  
+  @keyframes gravity-wave-expand {
+    0% {
+      width: 4px;
+      height: 4px;
+      opacity: 1;
+      transform: scale(1);
+    }
+    25% {
+      opacity: 0.9;
+      transform: scale(0.9);
+      box-shadow: 0 0 50px hsl(var(--gravity-color) / 0.9);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+    100% {
+      width: 450px;
+      height: 450px;
+      opacity: 0;
+      transform: scale(1);
+    }
+  }
+  
+  @keyframes echo-bounce {
+    0% {
+      width: 4px;
+      height: 4px;
+      opacity: 0.8;
+      transform: scale(1);
+    }
+    20% {
+      transform: scale(1.2);
+      opacity: 0.9;
+    }
+    40% {
+      transform: scale(0.9);
+    }
+    60% {
+      transform: scale(1.1);
+    }
+    100% {
+      width: 300px;
+      height: 300px;
+      opacity: 0;
+      transform: scale(1);
+    }
+  }
+  
+  @keyframes light-smear-pulse {
+    0% {
+      opacity: 0.6;
+      transform: scale(0.8);
+    }
+    50% {
+      opacity: 0.9;
+      transform: scale(1.2);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.4);
+    }
+  }
+  
+  @keyframes light-ray-shoot {
+    0% {
+      opacity: 1;
+      transform: scale(1, 0.5);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(1, 1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.5, 0.8);
+    }
+  }
+  
+  @keyframes gravity-warp {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.3;
+    }
+    50% {
+      transform: scale(1.1);
+      opacity: 0.6;
+    }
+  }
+  
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px currentColor;
+    }
+    50% {
+      box-shadow: 0 0 40px currentColor, 0 0 60px currentColor;
+    }
+  }
+  
+  @keyframes expand-fade {
+    0% {
+      width: 4px;
+      height: 4px;
+      opacity: 0.8;
+    }
+    100% {
+      width: 400px;
+      height: 400px;
+      opacity: 0;
+    }
+  }
+  
+  @keyframes fade-out {
+    0% {
+      opacity: 0.6;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  
+  @keyframes pulse-metric {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.25;
+    }
+    50% {
+      transform: scale(1.1);
+      opacity: 0.5;
+    }
   }
 }

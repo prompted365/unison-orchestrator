@@ -35,7 +35,7 @@ export interface ModalPin {
 
 export interface Effect {
   id: string;
-  type: 'ring' | 'echo' | 'smear' | 'arc' | 'metric' | 'ray';
+  type: 'ring' | 'echo' | 'smear' | 'arc' | 'metric' | 'ray' | 'acoustic-wave' | 'gravity-wave';
   x: number;
   y: number;
   size?: number;
