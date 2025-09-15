@@ -16,6 +16,7 @@ interface CanvasProps {
   setNodes: Dispatch<SetStateAction<Node[]>>;
   setEffects: Dispatch<SetStateAction<Effect[]>>;
   orchestrator: any;
+  onCanvasBroadcast?: () => void;
 }
 
 export const Canvas = ({
@@ -27,7 +28,8 @@ export const Canvas = ({
   onBroadcast,
   setNodes,
   setEffects,
-  orchestrator
+  orchestrator,
+  onCanvasBroadcast
 }: CanvasProps) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const physics = usePhysics(mode);
@@ -75,7 +77,7 @@ export const Canvas = ({
         // Update agent visual state
         const updatedNodes = nodes.map(n => {
           if (n.id === agent.id) {
-            let strength = 'weak';
+            let strength: 'weak' | 'medium' | 'strong' = 'weak';
             if (snr > 0.7) strength = 'strong';
             else if (snr > 0.35) strength = 'medium';
             
@@ -174,8 +176,10 @@ export const Canvas = ({
 
   // Handle broadcast - this replaces the effect approach
   const handleBroadcastInternal = useCallback(() => {
+    console.log('Canvas broadcast triggered');
     handleBroadcast();
-  }, [handleBroadcast]);
+    onCanvasBroadcast?.();
+  }, [handleBroadcast, onCanvasBroadcast]);
 
   return (
     <div 

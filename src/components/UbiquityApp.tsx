@@ -108,9 +108,9 @@ export const UbiquityApp = () => {
   }, [initializeScene]);
 
   const handleBroadcast = useCallback(() => {
-    orchestrator.tick();
-    // Implementation will be added in Canvas component
-  }, [orchestrator]);
+    // This will be handled by Canvas component's broadcast function
+    console.log('Broadcast initiated from UbiquityApp');
+  }, []);
 
   const handleAddObject = useCallback(() => {
     const x = Math.random() * 600 + 100;
@@ -234,6 +234,7 @@ export const UbiquityApp = () => {
           setNodes={setNodes}
           setEffects={setEffects}
           orchestrator={orchestrator}
+          onCanvasBroadcast={() => console.log('Advanced broadcast completed')}
         />
 
         {/* Controls */}

@@ -8,6 +8,7 @@ export interface Node {
   capabilities: string[];
   load: number;
   lastSNR: number;
+  strength?: 'weak' | 'medium' | 'strong';
 }
 
 export interface WorldObject {
