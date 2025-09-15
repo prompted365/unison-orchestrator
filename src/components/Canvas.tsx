@@ -16,7 +16,7 @@ interface CanvasProps {
   setNodes: Dispatch<SetStateAction<Node[]>>;
   setEffects: Dispatch<SetStateAction<Effect[]>>;
   orchestrator: any;
-  onCanvasBroadcast?: () => void;
+  triggerBroadcast: number;
 }
 
 export const Canvas = ({
@@ -29,7 +29,7 @@ export const Canvas = ({
   setNodes,
   setEffects,
   orchestrator,
-  onCanvasBroadcast
+  triggerBroadcast
 }: CanvasProps) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const physics = usePhysics(mode);
@@ -174,12 +174,19 @@ export const Canvas = ({
     }
   }, [mode, nodes, objects, orchestrator, physics, addEffect, setNodes]);
 
-  // Handle broadcast - this replaces the effect approach
-  const handleBroadcastInternal = useCallback(() => {
-    console.log('Canvas broadcast triggered');
+  // Handle broadcast trigger from Controls button
+  useEffect(() => {
+    if (triggerBroadcast > 0) {
+      console.log('Canvas broadcast triggered from Controls');
+      handleBroadcast();
+    }
+  }, [triggerBroadcast, handleBroadcast]);
+
+  // Handle canvas click broadcast
+  const handleCanvasClick = useCallback(() => {
+    console.log('Canvas broadcast triggered from click');
     handleBroadcast();
-    onCanvasBroadcast?.();
-  }, [handleBroadcast, onCanvasBroadcast]);
+  }, [handleBroadcast]);
 
   return (
     <div 
@@ -187,7 +194,7 @@ export const Canvas = ({
       className="canvas-container h-[560px] relative"
       aria-live="polite"
       aria-label="Interactive orchestration canvas"
-      onClick={handleBroadcastInternal}
+      onClick={handleCanvasClick}
     >
       {/* Render objects */}
       {objects.map(obj => (

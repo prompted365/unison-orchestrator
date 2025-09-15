@@ -107,9 +107,11 @@ export const UbiquityApp = () => {
     initializeScene();
   }, [initializeScene]);
 
+  const [triggerBroadcast, setTriggerBroadcast] = useState(0);
+
   const handleBroadcast = useCallback(() => {
-    // This will be handled by Canvas component's broadcast function
-    console.log('Broadcast initiated from UbiquityApp');
+    // Trigger Canvas broadcast by updating state
+    setTriggerBroadcast(prev => prev + 1);
   }, []);
 
   const handleAddObject = useCallback(() => {
@@ -234,7 +236,7 @@ export const UbiquityApp = () => {
           setNodes={setNodes}
           setEffects={setEffects}
           orchestrator={orchestrator}
-          onCanvasBroadcast={() => console.log('Advanced broadcast completed')}
+          triggerBroadcast={triggerBroadcast}
         />
 
         {/* Controls */}
