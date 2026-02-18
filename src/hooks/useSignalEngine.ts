@@ -25,6 +25,8 @@ export const useSignalEngine = (mode: CommunicationMode, demurrageRate: number, 
   const lastTickRef = useRef(performance.now());
   const modeRef = useRef(mode);
   modeRef.current = mode;
+  const warrantsRef = useRef<Warrant[]>([]);
+  warrantsRef.current = warrants;
 
   // Tick the signal engine - called from simulation loop or interval
   useEffect(() => {
@@ -39,6 +41,14 @@ export const useSignalEngine = (mode: CommunicationMode, demurrageRate: number, 
           if (age > SIGNAL_TTL_S) return { ...sig, volume: 0, escalation: 'EXPIRED' as const };
 
           let vol = sig.volume + sig.volumeRate * dt;
+
+          // Warrant amplification: active warrants boost volume
+          const matchingWarrants = warrantsRef.current.filter(
+            w => w.status === 'active' && w.sourceSignalIds.includes(sig.id)
+          );
+          const warrantBoost = matchingWarrants.reduce((sum, w) => sum + w.priority * 0.03, 0);
+          vol += warrantBoost * dt;
+
           vol = Math.min(vol, sig.maxVolume);
           // Demurrage decay
           vol -= demurrageRate * vol * dt * 1000;
@@ -145,12 +155,14 @@ export const useSignalEngine = (mode: CommunicationMode, demurrageRate: number, 
     const selectedKind = kind || kinds[Math.floor(Math.random() * kinds.length)];
     const band = MODE_BAND[modeRef.current];
 
+    // TENSION signals (sirens) escalate faster
+    const isTension = selectedKind === 'TENSION';
     const sig: Signal = {
       id: nextId('signal'),
       kind: selectedKind,
       band,
       volume: 0.1 + Math.random() * 0.3,
-      volumeRate: 0.02 + Math.random() * 0.04,
+      volumeRate: isTension ? (0.04 + Math.random() * 0.04) : (0.02 + Math.random() * 0.04),
       maxVolume: 0.7 + Math.random() * 0.3,
       ttlHours: SIGNAL_TTL_S / 3600, // scaled
       hearingTargets: [],

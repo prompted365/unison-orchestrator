@@ -16,6 +16,7 @@ export const UbiquityApp = () => {
   const [objects, setObjects] = useState<WorldObject[]>([]);
   const [modalPins, setModalPins] = useState<ModalPin[]>([]);
   const [effects, setEffects] = useState<Effect[]>([]);
+  const [emittingAgentIds, setEmittingAgentIds] = useState<string[]>([]);
 
   const orchestrator = useOrchestrator(mode, objects);
   const simulation = useSimulation(mode, nodes, objects);
@@ -35,11 +36,18 @@ export const UbiquityApp = () => {
         if (agents.length === 0) return prev;
         // Pick 1-3 random agents to emit
         const count = 1 + Math.floor(Math.random() * 2);
+        const emittedIds: string[] = [];
         for (let i = 0; i < count; i++) {
           const agent = agents[Math.floor(Math.random() * agents.length)];
           simulation.emitWavefront(agent.x, agent.y);
-          signalEngine.emitSignal();
+          // In acoustic mode, bias toward TENSION (siren) signals
+          const kind = mode === 'acoustic' && Math.random() < 0.6 ? 'TENSION' as const : undefined;
+          signalEngine.emitSignal(kind);
+          emittedIds.push(agent.id);
         }
+        // Track emitting agents for visual flash
+        setEmittingAgentIds(emittedIds);
+        setTimeout(() => setEmittingAgentIds([]), 800);
         return prev;
       });
     }, 2000 + Math.random() * 2000); // every 2-4 seconds
@@ -314,6 +322,7 @@ export const UbiquityApp = () => {
           cockpitNodeId={cockpitNodeId}
           onEnterCockpit={setCockpitNodeId}
           onExitCockpit={() => setCockpitNodeId(null)}
+          emittingAgentIds={emittingAgentIds}
         />
 
         <Controls

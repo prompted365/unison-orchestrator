@@ -51,6 +51,11 @@ export const HUD = ({ mode, orchestrator, wavefronts, agentSignals, signals, war
 
   const highestWarrant = warrants.reduce((max, w) => Math.max(max, w.priority), 0);
 
+  // Compute total warrant amplification per tick
+  const warrantAmp = warrants
+    .filter(w => w.status === 'active')
+    .reduce((sum, w) => sum + w.priority * 0.03, 0);
+
   return (
     <div className="hud-panel animate-slide-in">
       <h4 className="text-sm font-bold text-primary mb-3">Manifold Status</h4>
@@ -67,6 +72,7 @@ export const HUD = ({ mode, orchestrator, wavefronts, agentSignals, signals, war
         <Row label="Active Wavefronts" value={String(wavefronts.length)} highlight={wavefronts.length > 0} />
         <Row label="Active Signals" value={String(signals.length)} highlight={signals.length > 0} />
         <Row label="Active Warrants" value={warrants.length > 0 ? `${warrants.length} (pri: ${highestWarrant.toFixed(2)})` : '0'} highlight={warrants.length > 0} />
+        <Row label="Warrant Amp" value={warrantAmp > 0 ? `+${warrantAmp.toFixed(4)}/tick` : '—'} highlight={warrantAmp > 0} />
         <Row label="Triads Detected" value={String(triadCount)} highlight={triadCount > 0} />
         <Row label="Agent SNR Range" value={maxSnr > 0 ? `${minSnr.toFixed(2)} – ${maxSnr.toFixed(2)}` : '—'} />
 
