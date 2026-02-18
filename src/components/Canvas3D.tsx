@@ -36,19 +36,24 @@ interface Canvas3DProps {
   cockpitNodeId: string | null;
   onEnterCockpit: (nodeId: string) => void;
   onExitCockpit: () => void;
+  emittingAgentIds?: string[];
 }
 
 // ─── 3D Node (sphere + label) ────────────────────────────────────────
 const Node3D = ({
-  node, mode, signal, onEnterCockpit, isCockpitTarget
+  node, mode, signal, onEnterCockpit, isCockpitTarget, isEmitting
 }: {
   node: Node; mode: CommunicationMode;
   signal?: AgentSignalState;
   onEnterCockpit: (id: string) => void;
   isCockpitTarget: boolean;
+  isEmitting?: boolean;
 }) => {
   const meshRef = useRef<THREE.Mesh>(null);
+  const emitRingRef = useRef<THREE.Mesh>(null);
+  const emitLightRef = useRef<THREE.PointLight>(null);
   const [hovered, setHovered] = useState(false);
+  const emitPhase = useRef(0);
 
   const isOrch = node.type === 'orchestrator';
   const snr = signal?.snr ?? (isOrch ? 1 : 0);
@@ -65,6 +70,22 @@ const Node3D = ({
     // Pulse emissive
     const mat = meshRef.current.material as THREE.MeshStandardMaterial;
     mat.emissiveIntensity = 0.3 + snr * 1.5 + (isOrch ? Math.sin(Date.now() * 0.003) * 0.3 : 0);
+
+    // Emission ring animation
+    if (isEmitting) {
+      emitPhase.current = Math.min(emitPhase.current + dt * 2.5, 1);
+    } else {
+      emitPhase.current = Math.max(emitPhase.current - dt * 3, 0);
+    }
+    if (emitRingRef.current) {
+      const scale = 0.3 + emitPhase.current * 1.5;
+      emitRingRef.current.scale.set(scale, scale, scale);
+      const ringMat = emitRingRef.current.material as THREE.MeshBasicMaterial;
+      ringMat.opacity = (1 - emitPhase.current) * 0.6;
+    }
+    if (emitLightRef.current) {
+      emitLightRef.current.intensity = emitPhase.current * 3;
+    }
   });
 
   const tooltip = useMemo(() => {
@@ -150,6 +171,28 @@ const Node3D = ({
 
       {/* Point light for orchestrator */}
       {isOrch && <pointLight color={color} intensity={2} distance={5} />}
+
+      {/* Emission flash ring */}
+      {emitPhase.current > 0.001 && (
+        <>
+          <mesh ref={emitRingRef} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[radius + 0.05, radius + 0.15, 32]} />
+            <meshBasicMaterial
+              color={mode === 'acoustic' ? '#ff6633' : color}
+              transparent
+              opacity={0.5}
+              side={THREE.DoubleSide}
+              depthWrite={false}
+            />
+          </mesh>
+          <pointLight
+            ref={emitLightRef}
+            color={mode === 'acoustic' ? '#ff6633' : color}
+            intensity={0}
+            distance={3}
+          />
+        </>
+      )}
     </group>
   );
 };
@@ -479,7 +522,7 @@ const CockpitCamera = ({ targetNode, onExit }: { targetNode: Node; onExit: () =>
 // ─── Scene (inner Canvas content) ────────────────────────────────────
 const Scene = ({
   mode, nodes, objects, modalPins, wavefronts, agentSignals,
-  cockpitNodeId, onEnterCockpit, onExitCockpit, onCanvasClick
+  cockpitNodeId, onEnterCockpit, onExitCockpit, onCanvasClick, emittingAgentIds
 }: Omit<Canvas3DProps, 'effects'>) => {
   const orchestratorNode = useMemo(() => nodes.find(n => n.type === 'orchestrator'), [nodes]);
   const agents = useMemo(() => nodes.filter(n => n.type === 'agent'), [nodes]);
@@ -555,6 +598,7 @@ const Scene = ({
           signal={agentSignals.get(node.id)}
           onEnterCockpit={onEnterCockpit}
           isCockpitTarget={node.id === cockpitNodeId}
+          isEmitting={emittingAgentIds?.includes(node.id)}
         />
       ))}
 
