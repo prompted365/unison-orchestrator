@@ -441,11 +441,12 @@ const Floor = ({ mode }: { mode: CommunicationMode }) => {
 
 // ─── Cockpit Camera Controller ───────────────────────────────────────
 const CockpitCamera = ({ targetNode, onExit }: { targetNode: Node; onExit: () => void }) => {
-  const { camera } = useThree();
+  const { camera, gl } = useThree();
   const velocity = useRef(new THREE.Vector3());
   const keys = useRef<Set<string>>(new Set());
   const yaw = useRef(0);
   const pitch = useRef(0);
+  const isLocked = useRef(false);
 
   const targetPos = useMemo(() => new THREE.Vector3(
     toWorld(targetNode.x - CENTER_X),
@@ -453,43 +454,81 @@ const CockpitCamera = ({ targetNode, onExit }: { targetNode: Node; onExit: () =>
     toWorld(targetNode.y - CENTER_Y)
   ), [targetNode]);
 
-  // Smoothly move camera to cockpit on mount
   useEffect(() => {
     camera.position.copy(targetPos);
     yaw.current = 0;
     pitch.current = 0;
   }, [camera, targetPos]);
 
-  // Key listeners
   useEffect(() => {
+    const canvas = gl.domElement;
+
     const onDown = (e: KeyboardEvent) => {
       keys.current.add(e.code);
-      if (e.code === 'Escape') onExit();
-    };
-    const onUp = (e: KeyboardEvent) => keys.current.delete(e.code);
-    const onMouse = (e: MouseEvent) => {
-      if (document.pointerLockElement) {
-        yaw.current -= e.movementX * 0.002;
-        pitch.current = Math.max(-1.2, Math.min(1.2, pitch.current - e.movementY * 0.002));
+      if (e.code === 'Escape') {
+        document.exitPointerLock?.();
+        onExit();
+      }
+      if (e.code === 'Space' || e.code === 'ShiftLeft') {
+        e.preventDefault();
       }
     };
-    const onClick = () => {
-      document.body.requestPointerLock?.();
+    const onUp = (e: KeyboardEvent) => keys.current.delete(e.code);
+
+    const onMouse = (e: MouseEvent) => {
+      // Always apply mouse look when in cockpit (locked or not)
+      if (document.pointerLockElement) {
+        yaw.current -= e.movementX * 0.002;
+        pitch.current = Math.max(-1.4, Math.min(1.4, pitch.current - e.movementY * 0.002));
+      }
     };
+
+    const onCanvasClick = () => {
+      if (!document.pointerLockElement) {
+        canvas.requestPointerLock?.();
+      }
+    };
+
+    const onLockChange = () => {
+      isLocked.current = !!document.pointerLockElement;
+    };
+
+    // Also handle right-click drag as fallback when not locked
+    let dragging = false;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!document.pointerLockElement && e.button === 0) {
+        dragging = true;
+      }
+    };
+    const onPointerMove = (e: PointerEvent) => {
+      if (dragging && !document.pointerLockElement) {
+        yaw.current -= e.movementX * 0.003;
+        pitch.current = Math.max(-1.4, Math.min(1.4, pitch.current - e.movementY * 0.003));
+      }
+    };
+    const onPointerUp = () => { dragging = false; };
 
     window.addEventListener('keydown', onDown);
     window.addEventListener('keyup', onUp);
-    window.addEventListener('mousemove', onMouse);
-    window.addEventListener('click', onClick);
+    document.addEventListener('mousemove', onMouse);
+    canvas.addEventListener('click', onCanvasClick);
+    document.addEventListener('pointerlockchange', onLockChange);
+    canvas.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
 
     return () => {
       window.removeEventListener('keydown', onDown);
       window.removeEventListener('keyup', onUp);
-      window.removeEventListener('mousemove', onMouse);
-      window.removeEventListener('click', onClick);
+      document.removeEventListener('mousemove', onMouse);
+      canvas.removeEventListener('click', onCanvasClick);
+      document.removeEventListener('pointerlockchange', onLockChange);
+      canvas.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
       document.exitPointerLock?.();
     };
-  }, [onExit]);
+  }, [onExit, gl]);
 
   useFrame((_, dt) => {
     const speed = 3;
@@ -500,18 +539,16 @@ const CockpitCamera = ({ targetNode, onExit }: { targetNode: Node; onExit: () =>
     if (keys.current.has('KeyA')) dir.x -= 1;
     if (keys.current.has('KeyD')) dir.x += 1;
     if (keys.current.has('Space')) dir.y += 1;
-    if (keys.current.has('ShiftLeft')) dir.y -= 1;
+    if (keys.current.has('ShiftLeft') || keys.current.has('ShiftRight')) dir.y -= 1;
 
     dir.normalize().multiplyScalar(speed * dt);
 
-    // Apply yaw rotation to movement
     const euler = new THREE.Euler(0, yaw.current, 0, 'YXZ');
     dir.applyEuler(euler);
 
     velocity.current.lerp(dir, 0.15);
     camera.position.add(velocity.current);
 
-    // Apply look-around
     const lookEuler = new THREE.Euler(pitch.current, yaw.current, 0, 'YXZ');
     camera.quaternion.setFromEuler(lookEuler);
   });
