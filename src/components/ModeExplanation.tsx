@@ -7,15 +7,15 @@ interface ModeExplanationProps {
 const MODE_DESCRIPTIONS = {
   acoustic: {
     title: 'Acoustic · Siren Channel',
-    description: 'Local + muffled. 343 m/s. **Permission gates** hard‑occlude; echoes WARN. Sirens escalate within container scope — muffling_per_hop attenuates across boundaries.'
+    description: 'Local + muffled. 343 m/s. **Permission gates** hard‑occlude; echoes WARN. muffling_per_hop = 5 attenuates across container boundaries. Sirens follow escalation lifecycle: ACTIVE → ACKNOWLEDGED → DISMISSED. breach_flags auto-trigger new Sirens when thresholds cross. Band: PRIMITIVE (0 dB) — always audible within scope.'
   },
   light: {
-    title: 'Light / EM · CogPR Channel', 
-    description: 'Broad + attenuated. Photons at c. **Observability lenses** and mirrors DRAW topology (no hard occlusion). CogPR proposals propagate cross-scope — weakened but never fully blocked.'
+    title: 'Light / EM · CogPR Channel',
+    description: 'Broad + attenuated. Photons at c. **Observability lenses** and mirrors DRAW topology (no hard occlusion). CogPR lifecycle: propose → review → merge/reject via /grapple. Cross-scope attenuation weakens but never fully blocks. Band: COGNITIVE (−6 dB) — moderate propagation, requires attention to hear.'
   },
   gravity: {
     title: 'Gravitational · Warrant Channel',
-    description: 'Global + warps phase. Metric ripples at c. **Invariant masses** SHEAR timing. Warrants and priors persist through all obstacles but warp timing — drift, demurrage, phase transitions.'
+    description: 'Global + warps phase. Metric ripples at c. **Invariant masses** SHEAR timing. Warrants mint on: volume_threshold, harmonic_triad, or circuit_breaker conditions. Dismissal requires stake bond. Demurrage decays volume over time — phase-dependent rate. Band: PRIMITIVE (0 dB) — bypasses muffling entirely.'
   }
 };
 

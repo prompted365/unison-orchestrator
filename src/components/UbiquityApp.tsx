@@ -44,17 +44,18 @@ export const UbiquityApp = () => {
       { cx: 270, cy: 300, n: 2 }
     ];
 
-    const capabilities = ['compute', 'storage', 'network', 'security', 'analytics'];
+    const subsystems = ['ghost_chorus', 'economy_whisper', 'drift_tracker', 'ecotone_gate', 'epitaph_extractor'];
+    const clusterGroups = ['ghost_chorus', 'economy_whisper', 'ecotone_gate', 'drift_tracker', 'epitaph_extractor'];
     let agentId = 0;
 
-    clusters.forEach(cluster => {
+    clusters.forEach((cluster, clusterIdx) => {
       for (let i = 0; i < cluster.n; i++) {
         const angle = Math.random() * Math.PI * 2;
         const distance = 10 + Math.random() * 36;
         const x = Math.max(16, Math.min(784, cluster.cx + Math.cos(angle) * distance));
         const y = Math.max(16, Math.min(544, cluster.cy + Math.sin(angle) * distance));
         
-        const agentCapabilities = capabilities
+        const agentCapabilities = subsystems
           .sort(() => Math.random() - 0.5)
           .slice(0, 2 + Math.floor(Math.random() * 2));
 
@@ -65,7 +66,9 @@ export const UbiquityApp = () => {
           y,
           capabilities: agentCapabilities,
           load: Math.random() * 0.8 + 0.1,
-          lastSNR: 0
+          lastSNR: 0,
+          actorGroup: clusterGroups[clusterIdx],
+          actorIndex: i
         });
       }
     });
