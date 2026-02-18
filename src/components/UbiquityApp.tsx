@@ -25,6 +25,30 @@ export const UbiquityApp = () => {
     orchestrator.state.field.breachRisk
   );
 
+  // Continuous agent emissions
+  const autoEmitRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (autoEmitRef.current) clearInterval(autoEmitRef.current);
+    autoEmitRef.current = setInterval(() => {
+      setNodes(prev => {
+        const agents = prev.filter(n => n.type === 'agent');
+        if (agents.length === 0) return prev;
+        // Pick 1-3 random agents to emit
+        const count = 1 + Math.floor(Math.random() * 2);
+        for (let i = 0; i < count; i++) {
+          const agent = agents[Math.floor(Math.random() * agents.length)];
+          simulation.emitWavefront(agent.x, agent.y);
+          signalEngine.emitSignal();
+        }
+        return prev;
+      });
+    }, 2000 + Math.random() * 2000); // every 2-4 seconds
+
+    return () => {
+      if (autoEmitRef.current) clearInterval(autoEmitRef.current);
+    };
+  }, [simulation, signalEngine]);
+
   // Update agent node strength from simulation SNR
   useEffect(() => {
     if (simulation.agentSignals.size === 0) return;
