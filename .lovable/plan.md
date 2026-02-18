@@ -1,111 +1,178 @@
 
 
-# CGG Semantic Relabeling -- Complete Pass
+# Simulation-Grade Physics + CGG State Machines
 
-## What's Already Done
-- Title: "Signal Manifold Monitor"
-- Subtitle references Sirens, CogPR, Warrants, Epitaphs
-- Mode selector labels: Acoustic/Siren, Light/CogPR, Gravity/Warrant
-- Epitaph pin content uses correct CGG titles (Siren warning, CogPR reflection note, Warrant drift advisory)
-- Button labels: Emit Signal, Add Obstacle, Drop Epitaph, Reset Manifold
+This plan upgrades the Signal Manifold Monitor from a click-triggered CSS animation demo into a continuously running physics simulation with live signal mechanics.
 
-## What Still Uses Generic/Old Terms
+## Current Limitations
 
-### 1. Node Tooltips (NodeComponent.tsx)
-**Current:** `Conductor` / `Actor` with generic capabilities like `compute, storage, network`
-**Target:** Map to CGG actor names. The Conductor node should display as **"Conductor (Mogul)"** and agent nodes should show their cluster identity -- e.g., "Ghost Chorus", "Ecotone Gate", "Drift Tracker", "Economy Whisper", "Epitaph Extractor" -- matching the extension pipeline from the substrate inventory (`_45`, `_52`, `_55`, `_60`, `_65`).
+- **No simulation loop** -- system only responds to clicks, then goes dormant
+- **Flat attenuation** -- simple `e^(-alpha*d)` with no inverse-square law
+- **Instant light** -- delay of `d / 3e8` is effectively 0ms, making light mode indistinguishable from gravity
+- **No multipath** -- acoustic echoes are decorative CSS, not computed reflections
+- **No signal lifecycle** -- the CGG type stubs (Signal, Warrant, HarmonicTriad) exist but are completely unwired
+- **Static HUD** -- values only update on click, then freeze
 
-### 2. Capabilities / Subsystems (UbiquityApp.tsx)
-**Current:** `['compute', 'storage', 'network', 'security', 'analytics']`
-**Target:** `['ghost_chorus', 'economy_whisper', 'drift_tracker', 'ecotone_gate', 'epitaph_extractor']` -- these are the actual CGG subsystem names from the wiring plan.
+## Architecture
 
-### 3. Task Names (useOrchestrator.ts)
-**Current:** Generic names like "Data Processing", "Network Sync", "Security Check"
-**Target:** Signal operations: "Siren Tick", "Warrant Triage", "CogPR Review", "Harmonic Scan", "Drift Measurement" -- matching `/siren tick`, `/grapple`, and triad detection from the skill updates.
-
-### 4. HUD Labels (HUD.tsx)
-**Current:** Generic physics labels (v, TTL, px/m, Rmax, Latency, Risk, Congestion)
-**Target:** CGG-specific labels per mode:
-- **All modes:** "Channel", "Propagation", "Muffling/hop", "Band Budget"
-- **Acoustic:** Show `muffling_per_hop: 5`, band: PRIMITIVE (0 dB)
-- **Light:** Show `cross-scope attenuation`, band: COGNITIVE (-6 dB)
-- **Gravity:** Show `phase_warp_factor`, band: PRIMITIVE (bypass muffling)
-- Replace "Latency/Risk/Congestion" with "Field Latency", "Breach Risk", "Signal Congestion"
-
-### 5. Object Tooltips (ObjectComponent.tsx)
-**Current:** `Permission Gate`, `Invariant Mass`, `Observability Lens`, `Mirror`
-**These are already correct** from the previous pass. No changes needed.
-
-### 6. ModeExplanation Descriptions (ModeExplanation.tsx)
-**Current:** Already uses muffling/cross-scope/phase-warping language.
-**Enrich with:** Specific CGG references:
-- Acoustic: mention `muffling_per_hop = 5`, Siren escalation lifecycle (ACTIVE -> ACKNOWLEDGED -> DISMISSED), breach_flags as auto-siren triggers
-- Light: mention CogPR lifecycle (propose -> review -> merge/reject via `/grapple`), cross-scope attenuation model, COGNITIVE band at -6 dB
-- Gravity: mention Warrant minting conditions (volume_threshold, harmonic_triad, circuit_breaker), stake bond for dismissal, demurrage as volume decay
-
-### 7. Orchestrator State Labels (types/index.ts + useOrchestrator.ts)
-**Current:** `OrchestratorState.field` has generic `latency`, `risk`, `congestion`
-**Target:** Add CGG-specific fields: `barometer_phase` (0-4), `demurrage_rate`, `breach_flags`, `active_signals_count`
-
-### 8. Dead Types File (types/orchestration.ts)
-**Current:** Contains completely generic/unused types (Agent, Task, SwarmState, CommunicationProtocol, etc.) that don't align with CGG at all.
-**Target:** Either remove entirely or replace with CGG-aligned type stubs (Signal, Warrant, HarmonicTriad) as groundwork for the state machine phase.
-
-## Files Changed (8 files)
-
-| File | Change Summary |
-|---|---|
-| `src/components/NodeComponent.tsx` | Tooltip shows CGG actor names instead of generic "Conductor/Actor" |
-| `src/components/UbiquityApp.tsx` | Capabilities array uses CGG subsystem names; cluster comments label actor roles |
-| `src/hooks/useOrchestrator.ts` | Task names become signal operations; state fields add barometer_phase and demurrage_rate |
-| `src/components/HUD.tsx` | Labels become CGG-specific (Band, Muffling/hop, Barometer Phase, Demurrage Rate, Breach Risk, Signal Congestion); values contextualized per mode |
-| `src/components/ModeExplanation.tsx` | Descriptions enriched with specific CGG mechanics (muffling_per_hop, CogPR lifecycle, warrant minting conditions, stake bonds) |
-| `src/types/index.ts` | OrchestratorState.field gains `barometerPhase` and `demurrageRate` fields |
-| `src/types/orchestration.ts` | Replace generic types with CGG-aligned stubs (Signal, Warrant, HarmonicTriad) for future state machine work |
-| `src/components/ObjectComponent.tsx` | No changes needed (already correct) |
-
-## Technical Details
-
-### Node-to-Actor Mapping
-Each cluster in `initializeScene` gets a CGG identity:
+Three new hooks power the simulation. The existing components become thin renderers.
 
 ```text
-Cluster 0 (cx:310, cy:210, n:3) -> "Ghost Chorus"     (_45)
-Cluster 1 (cx:500, cy:230, n:3) -> "Economy Whisper"   (_52)
-Cluster 2 (cx:360, cy:370, n:3) -> "Ecotone Gate"      (_60)
-Cluster 3 (cx:470, cy:360, n:2) -> "Drift Tracker"     (_55)
-Cluster 4 (cx:270, cy:300, n:2) -> "Epitaph Extractor" (_65)
++---------------------+
+|   useSimulation()   |  60fps requestAnimationFrame loop
+|   (new hook)        |  Owns: wavefronts[], propagation, collisions
++----------+----------+
+           |
++----------v----------+     +---------------------+
+|   usePhysics()      |     | useSignalEngine()   |
+|   (upgraded)        |     | (new hook)          |
+|   Inverse-square    |     | Signal volume       |
+|   Multipath echo    |     | Warrant minting     |
+|   Lens refraction   |     | Harmonic triads     |
+|   Geodesic curves   |     | Demurrage decay     |
++---------------------+     +---------------------+
+           |                          |
++----------v--------------------------v----+
+|            Canvas (renderer)              |
+|   Wavefronts drawn per-frame              |
+|   Connection lines with curvature         |
+|   Live SNR halos on agents                |
++-------------------------------------------+
 ```
 
-Agents get an `actorGroup` field on the Node type so tooltips can display "Ghost Chorus #2 [ghost_chorus, ecotone_gate]" instead of "Actor: compute, storage".
+## Changes by File
 
-### HUD Band Budget Display
-Add a small section showing the active mode's band budget from the CGG spec:
+### 1. New: `src/hooks/useSimulation.ts` -- Continuous Simulation Loop
 
-```text
-Acoustic -> PRIMITIVE (0 dB) | Always audible
-Light    -> COGNITIVE (-6 dB) | Moderate propagation
-Gravity  -> PRIMITIVE (0 dB) | Bypasses muffling
-```
+A `requestAnimationFrame`-based tick loop that runs at 60fps and manages:
 
-### New OrchestratorState Fields
+- **Wavefront propagation**: Each "Emit Signal" spawns a wavefront object with position, radius (expanding at mode velocity), energy (decaying via inverse-square + absorption). The loop grows radius each frame by `velocity * dt`.
+- **Per-agent SNR computation**: Every frame, each agent's received signal is computed from all active wavefronts based on distance, occlusion, and mode physics. This replaces the one-shot setTimeout approach.
+- **Wavefront-object collisions**: When an acoustic wavefront hits a wall, a secondary echo wavefront spawns from the reflection point. When a light wavefront hits a lens, it spawns a focused secondary. When it hits a mirror, it spawns a reflected secondary.
+- **Gravity geodesic warping**: In gravity mode, wavefront expansion rate slows near masses (simulating time dilation). Agents near masses receive signals with phase delay.
+- **Automatic cleanup**: Wavefronts with energy below 0.01 or radius beyond canvas bounds are pruned.
 
-```text
-field: {
-  latency -> fieldLatency
-  risk -> breachRisk  
-  congestion -> signalCongestion
-  barometerPhase: 0-4 (maps to TransitionPhase)
-  demurrageRate: 0.0001-0.0003 (per cycle, phase-dependent)
-}
-```
+The hook exposes: `wavefronts`, `agentSignals` (live per-agent SNR map), `emitWavefront()`, `reset()`.
 
-### CGG Type Stubs (orchestration.ts replacement)
-Lightweight interfaces matching the signal schema from `00-SIGNAL-MANIFOLD-ARCHITECTURE.md`:
+Time scaling: acoustic velocity (343 m/s) is scaled so a wavefront crosses the ~13m canvas in about 2.5 seconds (visible propagation). Light is ~50x faster (near-instant but not literally instant -- crosses in ~50ms so you see the flash sweep). Gravity matches light speed but with visible warping near masses.
 
-- `Signal`: id, kind (BEACON/LESSON/OPPORTUNITY/TENSION), band (PRIMITIVE/COGNITIVE/SOCIAL/PRESTIGE), volume, volumeRate, maxVolume, ttlHours, hearingTargets, escalation
-- `Warrant`: id, sourceSignalIds, mintingCondition, band, priority, scope, status (active/acknowledged/dismissed/expired), payload
-- `HarmonicTriad`: primitiveId, cognitiveId, tensionId, detectedAt, warrantId
+### 2. Upgraded: `src/hooks/usePhysics.ts` -- Realistic Attenuation Model
 
-These are not wired yet -- they're the type foundation for the state machine phase that follows.
+Replace the flat exponential with a proper model per mode:
+
+- **Acoustic**: Inverse-square law (`1/r^2`) combined with absorption coefficient (`e^(-alpha*r)`), plus a 0.3x occlusion penalty when a wall blocks line-of-sight. Echo computation: for each wall, calculate specular reflection point and return secondary source position + attenuated energy.
+- **Light**: Inverse-square law with very low absorption. Lenses multiply signal by a focus factor (1.4x) when the wavefront passes through. Mirrors redirect: compute reflection angle, return new propagation direction.
+- **Gravity**: No attenuation (signal strength = 1.0 everywhere), but `getPhaseSkew` returns a proper Schwarzschild-inspired time dilation factor: `dt' = dt * (1 + rs / (2 * distance))` where `rs` is proportional to mass size. This creates visible timing differences -- agents near masses receive the signal slightly later despite no energy loss.
+
+New exported functions:
+- `computeReflection(wallRect, incidentAngle)` -- returns reflection angle
+- `computeRefraction(lensCenter, lensRadius, incidentPos, incidentDir)` -- returns bent direction
+- `computeTimeDilation(position, masses)` -- returns local clock rate multiplier
+
+### 3. New: `src/hooks/useSignalEngine.ts` -- CGG State Machines
+
+Wires the `Signal`, `Warrant`, and `HarmonicTriad` types into live mechanics:
+
+**Signal lifecycle** (continuous):
+- On each simulation tick, every active signal's volume accrues: `volume += volumeRate * dt`
+- Volume is capped at `maxVolume`
+- Demurrage decays volume: `volume -= demurrageRate * volume * dt` (phase-dependent rate from barometer)
+- TTL countdown: signal expires when `age > ttlHours` (scaled to seconds for simulation)
+- Distance muffling: effective volume at an agent = `volume * SNR` (from physics)
+
+**Warrant minting** (discrete):
+- `volume_threshold`: When any signal's effective volume at any agent exceeds 0.8, mint a warrant
+- `harmonic_triad`: When a BEACON + LESSON + TENSION signal are simultaneously active within a time window (~5 seconds), detect the triad and mint
+- `circuit_breaker`: When `breachRisk > 0.25`, auto-mint a warrant
+
+**Warrant lifecycle**:
+- Active warrants display as pulsing overlay effects on the canvas
+- Warrants have a `stakeBond` cost displayed in HUD
+- Warrants auto-expire after 30 seconds (scaled TTL)
+
+**Harmonic detection**:
+- Sliding window checks for co-occurrence of BEACON (kind) + LESSON (kind) + TENSION (kind) signals
+- When detected, emits a special "triad resonance" visual effect and mints a harmonic warrant
+
+The hook exposes: `signals`, `warrants`, `triads`, `emitSignal(kind, band)`, `acknowledgeWarrant(id)`, `dismissWarrant(id, bond)`.
+
+### 4. Updated: `src/types/index.ts` -- New Types
+
+Add:
+- `Wavefront`: `{ id, sourceX, sourceY, radius, energy, velocity, mode, isEcho, parentId, angle?, createdAt }`
+- `AgentSignalState`: `{ agentId, snr, receivedAt, wavefrontId, phaseDelay }`
+- Extend `Effect` type with: `'wavefront' | 'reflection' | 'refraction' | 'triad-resonance' | 'warrant-pulse'`
+
+### 5. Updated: `src/components/Canvas.tsx` -- Wavefront Renderer
+
+Major refactor:
+- Remove the setTimeout-based broadcast logic (move to useSimulation)
+- Render wavefronts as expanding SVG circles (or absolutely positioned divs) with radius and opacity driven by simulation state, not CSS animations
+- Draw **connection lines** from conductor to each agent: straight lines in acoustic/light, geodesic curves (quadratic bezier bent toward masses) in gravity mode. Line opacity = current SNR.
+- Agent nodes get a real-time **signal halo**: a glow ring whose size and brightness tracks their live SNR from the simulation
+- Wavefront rendering: each active wavefront renders as a circle at its current radius with opacity proportional to energy. Acoustic wavefronts are orange, light wavefronts are cyan, gravity wavefronts are purple.
+- Secondary wavefronts (echoes, reflections) render with dashed borders
+
+### 6. Updated: `src/components/EffectComponent.tsx` -- New Effect Types
+
+Add renderers for:
+- `wavefront`: circle with radius/opacity from props (no CSS animation -- driven by simulation)
+- `reflection`: small flash at reflection point
+- `refraction`: directional glow through lens
+- `triad-resonance`: triple-ring pulsing effect when harmonic triad detected
+- `warrant-pulse`: persistent pulsing border overlay when warrant is active
+
+### 7. Updated: `src/components/HUD.tsx` -- Live Telemetry
+
+HUD now receives simulation state and updates every frame:
+- **Active Wavefronts**: count of propagating wavefronts
+- **Active Signals**: count from signal engine
+- **Active Warrants**: count + highest priority
+- **Triads Detected**: running count
+- **Agent SNR Range**: min-max across all agents (live)
+- **Barometer Phase**: with color-coded phase indicator (green/yellow/orange/red/purple for 0-4)
+- **Demurrage Rate**: with trend arrow (increasing/decreasing)
+- All values update continuously via the simulation loop
+
+### 8. Updated: `src/components/UbiquityApp.tsx` -- Wire Everything
+
+- Instantiate `useSimulation(mode, nodes, objects)` and `useSignalEngine(mode, orchestrator)`
+- "Emit Signal" button calls `simulation.emitWavefront()` + `signalEngine.emitSignal(randomKind, modeBand)`
+- Pass `simulation.wavefronts` and `simulation.agentSignals` to Canvas
+- Pass `signalEngine.signals`, `signalEngine.warrants`, `signalEngine.triads` to HUD
+- The continuous loop means the canvas is always alive -- wavefronts propagate, agents pulse, HUD updates
+
+### 9. Updated: `src/index.css` -- New Visual Classes
+
+- `.wavefront-ring`: no CSS animation (position/size driven by JS)
+- `.connection-line`: SVG line with mode-colored stroke
+- `.agent-halo`: radial gradient glow, size bound to SNR
+- `.triad-resonance`: triple concentric rings animation
+- `.warrant-overlay`: pulsing border animation
+- `.phase-indicator`: colored dot for barometer phase (5 colors)
+
+## What This Achieves
+
+- **Acoustic mode**: You see the orange wavefront physically expand across the canvas at visible speed (~2.5s to cross). It hits a Permission Gate and spawns a dashed echo wave bouncing back. Agents light up as the wavefront reaches them -- near agents first, far agents seconds later. Occluded agents behind walls receive weaker signals (dimmer halo).
+
+- **Light mode**: Cyan flash sweeps across almost instantly but you can see it. Lenses create focused secondary beams. Mirrors bounce rays at computed angles. No hard occlusion -- all agents receive signal, but with inverse-square falloff.
+
+- **Gravity mode**: Purple metric ripple expands. Near Invariant Masses, the ripple visibly slows (time dilation). All agents receive full-strength signal but with timing differences -- agents near masses show a phase delay. Geodesic connection lines curve around masses.
+
+- **CGG layer**: Signals accrue volume over time. When thresholds cross, warrants auto-mint with visual fanfare. Harmonic triads (3 signal types co-occurring) trigger resonance effects. Demurrage steadily decays idle signals. The HUD shows all of this live.
+
+## Files Summary
+
+| File | Status | Purpose |
+|---|---|---|
+| `src/hooks/useSimulation.ts` | New | 60fps wavefront propagation loop |
+| `src/hooks/useSignalEngine.ts` | New | Signal/Warrant/Harmonic state machines |
+| `src/hooks/usePhysics.ts` | Updated | Inverse-square, multipath, geodesics |
+| `src/types/index.ts` | Updated | Wavefront, AgentSignalState types |
+| `src/components/Canvas.tsx` | Updated | Render wavefronts + connection lines |
+| `src/components/EffectComponent.tsx` | Updated | New effect types |
+| `src/components/HUD.tsx` | Updated | Live telemetry from simulation |
+| `src/components/UbiquityApp.tsx` | Updated | Wire simulation + signal engine |
+| `src/index.css` | Updated | New visual classes |
+| `src/types/orchestration.ts` | Unchanged | Type stubs already correct |
 
