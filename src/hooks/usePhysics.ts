@@ -2,78 +2,166 @@ import { useMemo } from "react";
 import { CommunicationMode, Node, WorldObject } from "../types";
 
 const PX_PER_METER = 60;
-const TTL = 0.25;
 
+// Scaled velocities (px/s) so wavefronts are visible
 const PHYSICS_PROFILES = {
-  acoustic: { velocity: 343, alpha: 0.005, echoes: true },
-  light: { velocity: 3e8, alpha: 1e-4, echoes: false },
-  gravity: { velocity: 3e8, alpha: 0, echoes: false }
+  acoustic: { velocity: 320, alpha: 0.012, echoes: true },   // ~2.5s to cross 800px
+  light:    { velocity: 6000, alpha: 0.0002, echoes: false }, // ~130ms to cross
+  gravity:  { velocity: 6000, alpha: 0, echoes: false }       // same speed, but warps
 };
 
 export const usePhysics = (mode: CommunicationMode) => {
   const profile = PHYSICS_PROFILES[mode];
 
   const physics = useMemo(() => ({
-    getDistance: (a: Node, b: Node) => {
+    profile,
+
+    getDistance: (a: { x: number; y: number }, b: { x: number; y: number }) => {
       const dx = a.x - b.x;
       const dy = a.y - b.y;
-      const pixelDistance = Math.sqrt(dx * dx + dy * dy);
-      return pixelDistance / PX_PER_METER; // Convert to meters
+      return Math.sqrt(dx * dx + dy * dy) / PX_PER_METER;
     },
 
-    getDelay: (distanceMeters: number) => {
-      return (distanceMeters / profile.velocity) * 1000; // Convert to milliseconds
+    getPixelDistance: (a: { x: number; y: number }, b: { x: number; y: number }) => {
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      return Math.sqrt(dx * dx + dy * dy);
     },
 
+    // Inverse-square + absorption attenuation
     calculateSignal: (distanceMeters: number, blocked: boolean) => {
+      if (distanceMeters < 0.5) return 1;
+      
       if (mode === 'acoustic') {
-        const baseSignal = Math.exp(-profile.alpha * distanceMeters);
-        return Math.min(1, Math.max(0, baseSignal * (blocked ? 0.3 : 1)));
+        // 1/r^2 * e^(-alpha*r) * occlusion
+        const inverseSquare = 1 / (1 + distanceMeters * distanceMeters);
+        const absorption = Math.exp(-profile.alpha * distanceMeters);
+        const occlusion = blocked ? 0.15 : 1;
+        return Math.min(1, Math.max(0, inverseSquare * absorption * occlusion * 8));
       } else if (mode === 'light') {
-        // Light doesn't get hard blocked, just attenuated
-        return Math.min(1, Math.max(0, Math.exp(-profile.alpha * distanceMeters)));
+        // 1/r^2 with very low absorption, no hard block
+        const inverseSquare = 1 / (1 + distanceMeters * distanceMeters * 0.3);
+        const absorption = Math.exp(-profile.alpha * distanceMeters);
+        return Math.min(1, Math.max(0, inverseSquare * absorption * 4));
       } else {
-        // Gravity waves aren't blocked
+        // Gravity: no attenuation
         return 1;
       }
     },
 
-    isOccluded: (a: Node, b: Node, objects: WorldObject[]) => {
+    isOccluded: (a: { x: number; y: number }, b: { x: number; y: number }, objects: WorldObject[]) => {
       if (mode !== 'acoustic') return false;
-      
       const walls = objects.filter(obj => obj.type === 'wall');
-      return walls.some(wall => {
-        return lineIntersectsRect(
-          a.x, a.y, b.x, b.y,
-          wall.x, wall.y, wall.width, wall.height
-        );
-      });
+      return walls.some(wall =>
+        lineIntersectsRect(a.x, a.y, b.x, b.y, wall.x, wall.y, wall.width, wall.height)
+      );
     },
 
-    getPhaseSkew: (agent: Node, objects: WorldObject[]) => {
+    // Compute specular reflection point off a wall for echo wavefronts
+    computeEchoSources: (sourceX: number, sourceY: number, objects: WorldObject[]): Array<{ x: number; y: number; energy: number; objectId: string }> => {
+      if (mode !== 'acoustic') return [];
+      return objects
+        .filter(obj => obj.type === 'wall')
+        .map(wall => {
+          const cx = wall.x + wall.width / 2;
+          const cy = wall.y + wall.height / 2;
+          // Mirror source across wall center
+          const dx = cx - sourceX;
+          const dy = cy - sourceY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          return {
+            x: cx + dx * 0.1,
+            y: cy + dy * 0.1,
+            energy: 0.35 / (1 + dist / 200),
+            objectId: wall.id
+          };
+        });
+    },
+
+    // Lens focus: returns multiplier and focal point
+    computeLensFocus: (wavefrontX: number, wavefrontY: number, wavefrontRadius: number, objects: WorldObject[]): Array<{ x: number; y: number; focusFactor: number; objectId: string }> => {
+      if (mode !== 'light') return [];
+      return objects
+        .filter(obj => obj.type === 'lens')
+        .filter(lens => {
+          const cx = lens.x + lens.width / 2;
+          const cy = lens.y + lens.height / 2;
+          const dist = Math.sqrt((cx - wavefrontX) ** 2 + (cy - wavefrontY) ** 2);
+          return Math.abs(dist - wavefrontRadius) < 15;
+        })
+        .map(lens => ({
+          x: lens.x + lens.width / 2,
+          y: lens.y + lens.height / 2,
+          focusFactor: 1.6,
+          objectId: lens.id
+        }));
+    },
+
+    // Mirror reflection: returns reflected direction
+    computeMirrorReflections: (wavefrontX: number, wavefrontY: number, wavefrontRadius: number, objects: WorldObject[]): Array<{ x: number; y: number; angle: number; energy: number; objectId: string }> => {
+      if (mode !== 'light') return [];
+      return objects
+        .filter(obj => obj.type === 'mirror')
+        .filter(mirror => {
+          const cx = mirror.x + mirror.width / 2;
+          const cy = mirror.y + mirror.height / 2;
+          const dist = Math.sqrt((cx - wavefrontX) ** 2 + (cy - wavefrontY) ** 2);
+          return Math.abs(dist - wavefrontRadius) < 15;
+        })
+        .map(mirror => {
+          const cx = mirror.x + mirror.width / 2;
+          const cy = mirror.y + mirror.height / 2;
+          const dx = cx - wavefrontX;
+          const dy = cy - wavefrontY;
+          const reflAngle = Math.atan2(dy, dx) + Math.PI;
+          return {
+            x: cx,
+            y: cy,
+            angle: reflAngle,
+            energy: 0.7,
+            objectId: mirror.id
+          };
+        });
+    },
+
+    // Schwarzschild-inspired time dilation near masses
+    computeTimeDilation: (x: number, y: number, objects: WorldObject[]): number => {
+      if (mode !== 'gravity') return 1;
+      const masses = objects.filter(obj => obj.type === 'mass');
+      let dilation = 1;
+      for (const mass of masses) {
+        const cx = mass.x + mass.width / 2;
+        const cy = mass.y + mass.height / 2;
+        const rs = (mass.width + mass.height) * 0.15; // Schwarzschild radius proportional to size
+        const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+        dilation *= 1 / (1 + rs / (2 * Math.max(dist, 10)));
+      }
+      return dilation;
+    },
+
+    // Phase skew for gravity mode agents
+    getPhaseSkew: (agent: { x: number; y: number }, objects: WorldObject[]) => {
       if (mode !== 'gravity') return 0;
-      
       const masses = objects.filter(obj => obj.type === 'mass');
       return masses.reduce((skew, mass) => {
-        const centerX = mass.x + mass.width / 2;
-        const centerY = mass.y + mass.height / 2;
-        const dx = agent.x - centerX;
-        const dy = agent.y - centerY;
+        const cx = mass.x + mass.width / 2;
+        const cy = mass.y + mass.height / 2;
+        const dx = agent.x - cx;
+        const dy = agent.y - cy;
         const distance = Math.sqrt(dx * dx + dy * dy);
         return skew + 8 / (1 + distance / 90);
-      }, 0.12 * 10); // Base latency factor
+      }, 0.12 * 10);
     }
   }), [mode, profile]);
 
   return physics;
 };
 
-// Utility function for line-rectangle intersection
+// Utility: line-rectangle intersection
 function lineIntersectsRect(
   x1: number, y1: number, x2: number, y2: number,
   rx: number, ry: number, rw: number, rh: number
 ): boolean {
-  // Check if line intersects any of the four rectangle edges
   return (
     lineIntersectsLine(x1, y1, x2, y2, rx, ry, rx + rw, ry) ||
     lineIntersectsLine(x1, y1, x2, y2, rx + rw, ry, rx + rw, ry + rh) ||
@@ -88,9 +176,7 @@ function lineIntersectsLine(
 ): boolean {
   const denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
   if (denominator === 0) return false;
-  
   const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denominator;
   const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denominator;
-  
   return t >= 0 && t <= 1 && u >= 0 && u <= 1;
 }

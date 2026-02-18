@@ -1,10 +1,9 @@
-import { useRef, useEffect, useCallback, Dispatch, SetStateAction } from "react";
-import { CommunicationMode, Node, WorldObject, ModalPin, Effect } from "../types";
+import { useRef, useCallback, useMemo } from "react";
+import { CommunicationMode, Node, WorldObject, ModalPin, Effect, Wavefront, AgentSignalState } from "../types";
 import { NodeComponent } from "./NodeComponent";
 import { ObjectComponent } from "./ObjectComponent";
 import { ModalPinComponent } from "./ModalPinComponent";
 import { EffectComponent } from "./EffectComponent";
-import { usePhysics } from "../hooks/usePhysics";
 
 interface CanvasProps {
   mode: CommunicationMode;
@@ -12,12 +11,16 @@ interface CanvasProps {
   objects: WorldObject[];
   modalPins: ModalPin[];
   effects: Effect[];
-  onBroadcast: () => void;
-  setNodes: Dispatch<SetStateAction<Node[]>>;
-  setEffects: Dispatch<SetStateAction<Effect[]>>;
-  orchestrator: any;
-  triggerBroadcast: number;
+  wavefronts: Wavefront[];
+  agentSignals: Map<string, AgentSignalState>;
+  onCanvasClick: () => void;
 }
+
+const MODE_COLORS: Record<CommunicationMode, string> = {
+  acoustic: 'hsl(25, 100%, 60%)',
+  light: 'hsl(180, 100%, 67%)',
+  gravity: 'hsl(270, 100%, 70%)'
+};
 
 export const Canvas = ({
   mode,
@@ -25,185 +28,129 @@ export const Canvas = ({
   objects,
   modalPins,
   effects,
-  onBroadcast,
-  setNodes,
-  setEffects,
-  orchestrator,
-  triggerBroadcast
+  wavefronts,
+  agentSignals,
+  onCanvasClick
 }: CanvasProps) => {
   const canvasRef = useRef<HTMLDivElement>(null);
-  const physics = usePhysics(mode);
 
-  // Use refs to break the dependency cycle
-  const nodesRef = useRef(nodes);
-  nodesRef.current = nodes;
-  const objectsRef = useRef(objects);
-  objectsRef.current = objects;
-  const orchestratorRef = useRef(orchestrator);
-  orchestratorRef.current = orchestrator;
+  const orchestratorNode = useMemo(() => nodes.find(n => n.type === 'orchestrator'), [nodes]);
+  const agents = useMemo(() => nodes.filter(n => n.type === 'agent'), [nodes]);
+  const masses = useMemo(() => objects.filter(o => o.type === 'mass'), [objects]);
 
-  const addEffect = useCallback((effect: Omit<Effect, 'id' | 'createdAt'>) => {
-    const newEffect: Effect = {
-      ...effect,
-      id: `effect-${Date.now()}-${Math.random()}`,
-      createdAt: Date.now()
-    };
+  // Compute geodesic curve control point for gravity mode
+  const getGeodesicControlPoint = useCallback((ax: number, ay: number, bx: number, by: number) => {
+    if (mode !== 'gravity' || masses.length === 0) return null;
     
-    setEffects(prev => [...prev, newEffect]);
+    let totalPullX = 0, totalPullY = 0, totalWeight = 0;
+    const mx = (ax + bx) / 2;
+    const my = (ay + by) / 2;
     
-    setTimeout(() => {
-      setEffects(prev => prev.filter(e => e.id !== newEffect.id));
-    }, effect.duration || 2000);
-  }, [setEffects]);
-
-  const handleBroadcast = useCallback(() => {
-    const currentNodes = nodesRef.current;
-    const currentObjects = objectsRef.current;
-    const orch = orchestratorRef.current;
-
-    orch.tick();
-    
-    const orchestratorNode = currentNodes.find(n => n.type === 'orchestrator');
-    if (!orchestratorNode) return;
-
-    // Create distinct initial broadcast wave for each mode
-    if (mode === 'acoustic') {
-      addEffect({
-        type: 'acoustic-wave',
-        x: orchestratorNode.x,
-        y: orchestratorNode.y,
-        duration: 2500
-      });
-    } else if (mode === 'light') {
-      addEffect({
-        type: 'ring',
-        x: orchestratorNode.x,
-        y: orchestratorNode.y,
-        duration: 2000
-      });
-    } else if (mode === 'gravity') {
-      addEffect({
-        type: 'gravity-wave',
-        x: orchestratorNode.x,
-        y: orchestratorNode.y,
-        duration: 3000
-      });
-    }
-
-    // Process agents with physics
-    const agents = currentNodes.filter(n => n.type === 'agent');
-    const task = orch.getNextTask();
-
-    agents.forEach((agent) => {
-      const distance = physics.getDistance(orchestratorNode, agent);
-      const blocked = physics.isOccluded(orchestratorNode, agent, currentObjects);
-      const snr = physics.calculateSignal(distance, blocked);
-      const delay = physics.getDelay(distance);
-
-      setTimeout(() => {
-        // Update agent visual state using functional setter to avoid stale closure
-        setNodes(prev => prev.map(n => {
-          if (n.id === agent.id) {
-            let strength: 'weak' | 'medium' | 'strong' = 'weak';
-            if (snr > 0.7) strength = 'strong';
-            else if (snr > 0.35) strength = 'medium';
-            return { ...n, lastSNR: snr, strength };
-          }
-          return n;
-        }));
-
-        // Add task badge effect
-        addEffect({
-          type: 'ring',
-          x: agent.x + 14,
-          y: agent.y - 10,
-          size: 1,
-          duration: 2200
-        });
-      }, delay * 250);
+    masses.forEach(mass => {
+      const cx = mass.x + mass.width / 2;
+      const cy = mass.y + mass.height / 2;
+      const dist = Math.sqrt((mx - cx) ** 2 + (my - cy) ** 2);
+      const weight = (mass.width + mass.height) / (dist + 50);
+      totalPullX += (cx - mx) * weight;
+      totalPullY += (cy - my) * weight;
+      totalWeight += weight;
     });
 
-    // Mode-specific effects
-    if (mode === 'acoustic') {
-      setTimeout(() => {
-        currentObjects.filter(obj => obj.type === 'wall').forEach((wall, i) => {
-          setTimeout(() => {
-            addEffect({
-              type: 'echo',
-              x: wall.x + wall.width / 2,
-              y: wall.y + wall.height / 2
-            });
-          }, i * 120);
-        });
-      }, 600);
-    } else if (mode === 'light') {
-      const beamCount = 18;
-      for (let i = 0; i < beamCount; i++) {
-        const angle = (i / beamCount) * Math.PI * 2;
-        addEffect({
-          type: 'ray',
-          x: orchestratorNode.x,
-          y: orchestratorNode.y,
-          size: angle,
-          duration: 1200
-        });
-      }
-
-      setTimeout(() => {
-        currentObjects.filter(obj => obj.type === 'lens' || obj.type === 'mirror').forEach((obj, i) => {
-          setTimeout(() => {
-            addEffect({
-              type: 'smear',
-              x: obj.x + obj.width / 2,
-              y: obj.y + obj.height / 2,
-              size: 76
-            });
-          }, i * 110);
-        });
-      }, 300);
-    } else if (mode === 'gravity') {
-      addEffect({
-        type: 'metric',
-        x: orchestratorNode.x,
-        y: orchestratorNode.y,
-        size: 120
-      });
-
-      currentObjects.filter(obj => obj.type === 'mass').forEach((mass, i) => {
-        setTimeout(() => {
-          addEffect({
-            type: 'metric',
-            x: mass.x + mass.width / 2,
-            y: mass.y + mass.height / 2,
-            size: 74
-          });
-        }, i * 140);
-      });
-    }
-  }, [mode, physics, addEffect, setNodes]);
-
-  // Handle broadcast trigger from Controls button
-  useEffect(() => {
-    if (triggerBroadcast > 0) {
-      console.log('Canvas broadcast triggered from Controls');
-      handleBroadcast();
-    }
-  }, [triggerBroadcast, handleBroadcast]);
-
-  // Handle canvas click broadcast
-  const handleCanvasClick = useCallback(() => {
-    console.log('Canvas broadcast triggered from click');
-    handleBroadcast();
-  }, [handleBroadcast]);
+    if (totalWeight < 0.01) return null;
+    return {
+      x: mx + totalPullX * 2,
+      y: my + totalPullY * 2
+    };
+  }, [mode, masses]);
 
   return (
-    <div 
+    <div
       ref={canvasRef}
       className="canvas-container h-[560px] relative"
       aria-live="polite"
       aria-label="Interactive orchestration canvas"
-      onClick={handleCanvasClick}
+      onClick={onCanvasClick}
     >
+      {/* SVG layer for connection lines and wavefronts */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none z-[5]">
+        {/* Connection lines from conductor to agents */}
+        {orchestratorNode && agents.map(agent => {
+          const signal = agentSignals.get(agent.id);
+          const snr = signal?.snr ?? 0;
+          const opacity = Math.max(0.05, snr * 0.6);
+          const cp = getGeodesicControlPoint(orchestratorNode.x, orchestratorNode.y, agent.x, agent.y);
+          const color = MODE_COLORS[mode];
+
+          if (cp) {
+            return (
+              <path
+                key={`conn-${agent.id}`}
+                d={`M ${orchestratorNode.x} ${orchestratorNode.y} Q ${cp.x} ${cp.y} ${agent.x} ${agent.y}`}
+                stroke={color}
+                strokeWidth={1 + snr * 1.5}
+                fill="none"
+                opacity={opacity}
+                strokeDasharray={snr < 0.2 ? "4 4" : "none"}
+              />
+            );
+          }
+          return (
+            <line
+              key={`conn-${agent.id}`}
+              x1={orchestratorNode.x}
+              y1={orchestratorNode.y}
+              x2={agent.x}
+              y2={agent.y}
+              stroke={color}
+              strokeWidth={1 + snr * 1.5}
+              opacity={opacity}
+              strokeDasharray={snr < 0.2 ? "4 4" : "none"}
+            />
+          );
+        })}
+
+        {/* Wavefront circles */}
+        {wavefronts.map(wf => {
+          const color = MODE_COLORS[wf.mode];
+          return (
+            <circle
+              key={wf.id}
+              cx={wf.sourceX}
+              cy={wf.sourceY}
+              r={wf.radius}
+              fill="none"
+              stroke={color}
+              strokeWidth={wf.isEcho ? 1.5 : 2.5}
+              opacity={Math.min(0.8, wf.energy * 0.9)}
+              strokeDasharray={wf.isEcho ? "6 4" : "none"}
+            />
+          );
+        })}
+      </svg>
+
+      {/* Agent SNR halos */}
+      {agents.map(agent => {
+        const signal = agentSignals.get(agent.id);
+        const snr = signal?.snr ?? 0;
+        if (snr < 0.05) return null;
+        const haloSize = 12 + snr * 30;
+        const color = MODE_COLORS[mode];
+        return (
+          <div
+            key={`halo-${agent.id}`}
+            className="absolute rounded-full pointer-events-none z-[8]"
+            style={{
+              left: `${agent.x - haloSize / 2}px`,
+              top: `${agent.y - haloSize / 2}px`,
+              width: `${haloSize}px`,
+              height: `${haloSize}px`,
+              background: `radial-gradient(circle, ${color.replace(')', ` / ${snr * 0.5})`)} 0%, transparent 70%)`,
+              boxShadow: `0 0 ${snr * 20}px ${color.replace(')', ` / ${snr * 0.4})`)}`,
+            }}
+          />
+        );
+      })}
+
       {/* Render objects */}
       {objects.map(obj => (
         <ObjectComponent key={obj.id} object={obj} />
