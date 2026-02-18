@@ -20,6 +20,9 @@ export const UbiquityApp = () => {
   const [effects, setEffects] = useState<Effect[]>([]);
   const [emittingAgentIds, setEmittingAgentIds] = useState<string[]>([]);
 
+  const [isManifoldOpen, setIsManifoldOpen] = useState(false);
+  const [isGradientOpen, setIsGradientOpen] = useState(false);
+
   const orchestrator = useOrchestrator(mode, objects);
   const simulation = useSimulation(mode, nodes, objects);
   const signalEngine = useSignalEngine(
@@ -62,7 +65,6 @@ export const UbiquityApp = () => {
     };
   }, [simulation, signalEngine]);
 
-  // Update agent node strength from simulation SNR
   useEffect(() => {
     if (simulation.agentSignals.size === 0) return;
     setNodes(prev => prev.map(n => {
@@ -76,7 +78,6 @@ export const UbiquityApp = () => {
     }));
   }, [simulation.agentSignals]);
 
-  // Initialize scene
   const initializeScene = useCallback(() => {
     setNodes([]);
     setObjects([]);
@@ -291,22 +292,52 @@ export const UbiquityApp = () => {
     initializeScene();
   }, [initializeScene]);
 
+  const activeWarrantCount = signalEngine.warrants.filter(w => w.status === 'active').length;
+
   return (
-    <div className="min-h-screen p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold bg-clip-text text-transparent" style={{ backgroundImage: 'var(--gradient-neon)' }}>
-            Signal Manifold Monitor
+    <div className="h-screen flex flex-col overflow-hidden">
+      {/* Compact Header */}
+      <header className="flex items-center justify-between px-4 py-2 border-b border-primary/10 shrink-0 flex-wrap gap-2">
+        <div className="flex items-center gap-3 min-w-0">
+          <h1 className="text-xs sm:text-sm font-bold font-mono text-primary tracking-wider whitespace-nowrap">
+            Constitution of Attention
           </h1>
-          <p className="text-sm text-secondary-foreground max-w-4xl mx-auto">
-            Hybrid physics simulator × CGG semantic layer. Acoustic = Sirens (local, muffled).
-            Light = CogPR (broad, attenuated). Gravity = Warrants (global, phase-warping).
-            Epitaphs are modal: warnings, reflection notes, or drift advisories.
-          </p>
+          <span className="hidden sm:inline text-[10px] text-muted-foreground font-mono">
+            Signal Manifold
+          </span>
         </div>
 
-        <ModeSelector mode={mode} onModeChange={setMode} />
+        <div className="order-3 sm:order-2 w-full sm:w-auto flex justify-center">
+          <ModeSelector mode={mode} onModeChange={setMode} />
+        </div>
 
+        <div className="flex items-center gap-1.5 order-2 sm:order-3">
+          <button
+            onClick={() => setIsGradientOpen(prev => !prev)}
+            className={`drawer-toggle-btn ${isGradientOpen ? 'active' : ''}`}
+            title="Gradient Config"
+          >
+            <span className="text-sm">🎛️</span>
+            <span className="hidden md:inline text-[10px]">Gradient</span>
+          </button>
+          <button
+            onClick={() => setIsManifoldOpen(prev => !prev)}
+            className={`drawer-toggle-btn ${isManifoldOpen ? 'active' : ''}`}
+            title="Manifold Status"
+          >
+            <span className="text-sm">📡</span>
+            <span className="hidden md:inline text-[10px]">Manifold</span>
+            {activeWarrantCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-[8px] text-destructive-foreground flex items-center justify-center font-bold">
+                {activeWarrantCount}
+              </span>
+            )}
+          </button>
+        </div>
+      </header>
+
+      {/* 3D Canvas — dominant viewport */}
+      <div className="flex-1 relative min-h-0">
         <Canvas3D
           mode={mode}
           nodes={nodes}
@@ -321,7 +352,10 @@ export const UbiquityApp = () => {
           onExitCockpit={() => setCockpitNodeId(null)}
           emittingAgentIds={emittingAgentIds}
         />
+      </div>
 
+      {/* Controls + Explanation */}
+      <div className="shrink-0 px-4 py-3 space-y-2 border-t border-primary/10">
         <Controls
           onBroadcast={handleBroadcast}
           onAddObject={handleAddObject}
@@ -331,34 +365,67 @@ export const UbiquityApp = () => {
           onAcknowledgeWarrant={signalEngine.acknowledgeWarrant}
           onDismissWarrant={signalEngine.dismissWarrant}
         />
-
         <ModeExplanation mode={mode} />
       </div>
 
-      <ManifoldDashboard
-        mode={mode}
-        orchestrator={orchestrator}
-        wavefronts={simulation.wavefronts}
-        agentSignals={simulation.agentSignals}
-        signals={signalEngine.signals}
-        warrants={signalEngine.warrants}
-        triadCount={signalEngine.triadCount}
-        triads={signalEngine.triads}
-        census={signalEngine.census}
-        warrantLifecycle={signalEngine.warrantLifecycle}
-        phaseTier={orchestrator.phaseTier}
-        breachFlags={orchestrator.breachFlags}
-        economicBridge={economicBridge}
-        onAcknowledgeWarrant={signalEngine.acknowledgeWarrant}
-        onDismissWarrant={signalEngine.dismissWarrant}
-      />
+      {/* Manifold Drawer — right */}
+      {isManifoldOpen && (
+        <div className="drawer-backdrop" onClick={() => setIsManifoldOpen(false)} />
+      )}
+      <div className={`drawer-right ${isManifoldOpen ? 'open' : ''}`}>
+        <div className="flex items-center justify-between px-4 pt-4 pb-2">
+          <h3 className="text-sm font-bold text-primary font-mono">Manifold Status</h3>
+          <button
+            onClick={() => setIsManifoldOpen(false)}
+            className="text-muted-foreground hover:text-primary transition-colors text-lg leading-none"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="overflow-y-auto flex-1 px-1">
+          <ManifoldDashboard
+            mode={mode}
+            orchestrator={orchestrator}
+            wavefronts={simulation.wavefronts}
+            agentSignals={simulation.agentSignals}
+            signals={signalEngine.signals}
+            warrants={signalEngine.warrants}
+            triadCount={signalEngine.triadCount}
+            triads={signalEngine.triads}
+            census={signalEngine.census}
+            warrantLifecycle={signalEngine.warrantLifecycle}
+            phaseTier={orchestrator.phaseTier}
+            breachFlags={orchestrator.breachFlags}
+            economicBridge={economicBridge}
+            onAcknowledgeWarrant={signalEngine.acknowledgeWarrant}
+            onDismissWarrant={signalEngine.dismissWarrant}
+          />
+        </div>
+      </div>
 
-      <GradientPanel
-        levers={gradientConfig.levers}
-        labels={gradientConfig.labels}
-        onSetLever={gradientConfig.setLever}
-        onApplyPreset={gradientConfig.applyPreset}
-      />
+      {/* Gradient Drawer — left */}
+      {isGradientOpen && (
+        <div className="drawer-backdrop" onClick={() => setIsGradientOpen(false)} />
+      )}
+      <div className={`drawer-left ${isGradientOpen ? 'open' : ''}`}>
+        <div className="flex items-center justify-between px-4 pt-4 pb-2">
+          <h3 className="text-sm font-bold text-primary font-mono">🎛️ Gradient Config</h3>
+          <button
+            onClick={() => setIsGradientOpen(false)}
+            className="text-muted-foreground hover:text-primary transition-colors text-lg leading-none"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="overflow-y-auto flex-1 px-1">
+          <GradientPanel
+            levers={gradientConfig.levers}
+            labels={gradientConfig.labels}
+            onSetLever={gradientConfig.setLever}
+            onApplyPreset={gradientConfig.applyPreset}
+          />
+        </div>
+      </div>
     </div>
   );
 };

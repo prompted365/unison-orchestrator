@@ -1,4 +1,7 @@
 import { Warrant } from "../types/orchestration";
+import {
+  Tooltip, TooltipTrigger, TooltipContent, TooltipProvider
+} from "./ui/tooltip";
 
 interface ControlsProps {
   onBroadcast: () => void;
@@ -10,6 +13,32 @@ interface ControlsProps {
   onDismissWarrant?: (id: string) => void;
 }
 
+const ControlButton = ({
+  label, shortLabel, tooltip, onClick, variant
+}: {
+  label: string; shortLabel: string; tooltip: string;
+  onClick: () => void; variant?: 'accent' | 'destructive';
+}) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <button
+        className={`control-btn text-xs sm:text-sm ${
+          variant === 'accent' ? 'border-accent/50 text-accent hover:bg-accent hover:text-black' :
+          variant === 'destructive' ? 'border-destructive/50 text-destructive hover:bg-destructive hover:text-foreground' :
+          ''
+        }`}
+        onClick={onClick}
+      >
+        <span className="hidden sm:inline">{label}</span>
+        <span className="sm:hidden">{shortLabel}</span>
+      </button>
+    </TooltipTrigger>
+    <TooltipContent side="top" className="max-w-xs text-xs">
+      {tooltip}
+    </TooltipContent>
+  </Tooltip>
+);
+
 export const Controls = ({
   onBroadcast, onAddObject, onDropPin, onClear,
   warrants, onAcknowledgeWarrant, onDismissWarrant
@@ -18,35 +47,51 @@ export const Controls = ({
   const nextWarrant = activeWarrants[0];
 
   return (
-    <div className="flex gap-4 justify-center flex-wrap">
-      <button className="control-btn" onClick={onBroadcast}>
-        Emit Signal
-      </button>
-      <button className="control-btn" onClick={onAddObject}>
-        Add Obstacle (Gate / Lens / Mass)
-      </button>
-      <button className="control-btn" onClick={onDropPin}>
-        Drop Epitaph
-      </button>
-      <button className="control-btn" onClick={onClear}>
-        Reset Manifold
-      </button>
-      {nextWarrant && onAcknowledgeWarrant && (
-        <button
-          className="control-btn border-accent/50 text-accent hover:bg-accent hover:text-black"
-          onClick={() => onAcknowledgeWarrant(nextWarrant.id)}
-        >
-          Acknowledge Warrant
-        </button>
-      )}
-      {nextWarrant && onDismissWarrant && (
-        <button
-          className="control-btn border-destructive/50 text-destructive hover:bg-destructive hover:text-white"
-          onClick={() => onDismissWarrant(nextWarrant.id)}
-        >
-          Dismiss (−{nextWarrant.stakeBond.toFixed(2)})
-        </button>
-      )}
-    </div>
+    <TooltipProvider delayDuration={300}>
+      <div className="flex gap-2 sm:gap-3 justify-center flex-wrap">
+        <ControlButton
+          label="Emit Signal"
+          shortLabel="Emit"
+          tooltip="Broadcast from the Conductor. Accrues volume in the manifold."
+          onClick={onBroadcast}
+        />
+        <ControlButton
+          label="Add Obstacle"
+          shortLabel="Obstacle"
+          tooltip="Place a Permission Gate (acoustic), Observability Lens (light), or Invariant Mass (gravity)"
+          onClick={onAddObject}
+        />
+        <ControlButton
+          label="Drop Epitaph"
+          shortLabel="Epitaph"
+          tooltip="Modal annotation — Siren warning, CogPR note, or Drift advisory"
+          onClick={onDropPin}
+        />
+        <ControlButton
+          label="Reset Manifold"
+          shortLabel="Reset"
+          tooltip="Clear all signals, warrants, and objects. Reset the field."
+          onClick={onClear}
+        />
+        {nextWarrant && onAcknowledgeWarrant && (
+          <ControlButton
+            label="Acknowledge Warrant"
+            shortLabel="ACK"
+            tooltip={`Acknowledge active warrant (${nextWarrant.mintingCondition}). No stake cost.`}
+            onClick={() => onAcknowledgeWarrant(nextWarrant.id)}
+            variant="accent"
+          />
+        )}
+        {nextWarrant && onDismissWarrant && (
+          <ControlButton
+            label={`Dismiss (−${nextWarrant.stakeBond.toFixed(2)})`}
+            shortLabel={`DIS −${nextWarrant.stakeBond.toFixed(1)}`}
+            tooltip={`Dismiss warrant. Burns ${nextWarrant.stakeBond.toFixed(2)} stake bond as penalty.`}
+            onClick={() => onDismissWarrant(nextWarrant.id)}
+            variant="destructive"
+          />
+        )}
+      </div>
+    </TooltipProvider>
   );
 };
