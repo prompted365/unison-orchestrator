@@ -5,11 +5,11 @@ interface BootSplashProps {
 }
 
 const WIRE_COUNT = 280;
-const CHAOS_DURATION = 4000; // 4s of golden wireframe chaos
-const TITLE_FADE_IN = 800;
-const TITLE_HOLD = 1600;
-const TITLE_FADE_OUT = 800;
-const TOTAL_TITLE = TITLE_FADE_IN + TITLE_HOLD + TITLE_FADE_OUT; // 3.2s
+const CHAOS_DURATION = 2000; // 2s of golden wireframe chaos
+const TITLE_FADE_IN = 500;
+const TITLE_HOLD = 800;
+const TITLE_FADE_OUT = 500;
+const TOTAL_TITLE = TITLE_FADE_IN + TITLE_HOLD + TITLE_FADE_OUT; // 1.8s
 
 export const BootSplash = ({ onComplete }: BootSplashProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
