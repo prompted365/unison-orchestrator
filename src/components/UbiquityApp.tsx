@@ -6,6 +6,7 @@ import { ManifoldDashboard } from "./ManifoldDashboard";
 import { GradientPanel } from "./GradientPanel";
 import { ModeExplanation } from "./ModeExplanation";
 import { StoryOverlay } from "./StoryOverlay";
+import { BootSplash } from "./BootSplash";
 import { useOrchestrator } from "../hooks/useOrchestrator";
 import { useSimulation } from "../hooks/useSimulation";
 import { useSignalEngine } from "../hooks/useSignalEngine";
@@ -15,6 +16,7 @@ import { useStoryMode } from "../hooks/useStoryMode";
 import { CommunicationMode, Node, WorldObject, ModalPin, Effect } from "../types";
 
 export const UbiquityApp = () => {
+  const [bootDone, setBootDone] = useState(false);
   const [mode, setMode] = useState<CommunicationMode>("acoustic");
   const [cockpitNodeId, setCockpitNodeId] = useState<string | null>(null);
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -323,6 +325,8 @@ export const UbiquityApp = () => {
   const activeWarrantCount = signalEngine.warrants.filter(w => w.status === 'active').length;
 
   return (
+    <>
+      {!bootDone && <BootSplash onComplete={() => setBootDone(true)} />}
     <div className="h-screen flex flex-col overflow-hidden">
       {/* Compact Header */}
       <header className="flex items-center justify-between px-4 py-2 border-b border-primary/10 shrink-0 flex-wrap gap-2">
@@ -481,5 +485,6 @@ export const UbiquityApp = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
