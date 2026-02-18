@@ -22,7 +22,7 @@ export const NodeComponent = ({ node }: NodeComponentProps) => {
         left: `${node.x}px`,
         top: `${node.y}px`
       }}
-      title={`${node.type}: ${node.capabilities.join(', ')}`}
+      title={`${node.type === 'orchestrator' ? 'Conductor' : 'Actor'}: ${node.capabilities.join(', ')}`}
     />
   );
 };

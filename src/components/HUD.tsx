@@ -6,9 +6,9 @@ interface HUDProps {
 }
 
 const PHYSICS_PROFILES = {
-  acoustic: { v: 343, label: 'Acoustic' },
-  light: { v: 3e8, label: 'Light/EM' },
-  gravity: { v: 3e8, label: 'Gravitational' }
+  acoustic: { v: 343, label: 'Siren (Acoustic)' },
+  light: { v: 3e8, label: 'CogPR (Light/EM)' },
+  gravity: { v: 3e8, label: 'Warrant (Gravitational)' }
 };
 
 const PX_PER_METER = 60;
@@ -26,7 +26,7 @@ export const HUD = ({ mode, orchestrator }: HUDProps) => {
 
   return (
     <div className="hud-panel animate-slide-in">
-      <h4 className="text-sm font-bold text-primary mb-3">System Status</h4>
+      <h4 className="text-sm font-bold text-primary mb-3">Manifold Status</h4>
       <div className="space-y-2 text-xs">
         <div className="flex justify-between">
           <span className="text-secondary-foreground">Mode</span>

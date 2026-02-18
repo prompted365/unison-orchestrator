@@ -6,16 +6,16 @@ interface ModeExplanationProps {
 
 const MODE_DESCRIPTIONS = {
   acoustic: {
-    title: 'Acoustic',
-    description: 'Mechanical waves at 343 m/s. **Walls** hard‑occlude; echoes WARN. Epitaphs: natural‑language warnings that tune soft‑block penalties.'
+    title: 'Acoustic · Siren Channel',
+    description: 'Local + muffled. 343 m/s. **Permission gates** hard‑occlude; echoes WARN. Sirens escalate within container scope — muffling_per_hop attenuates across boundaries.'
   },
   light: {
-    title: 'Light / EM', 
-    description: 'Photons at c. Lenses/mirrors DRAW topology (no hard occlusion). Reflection notes bias routing/focus.'
+    title: 'Light / EM · CogPR Channel', 
+    description: 'Broad + attenuated. Photons at c. **Observability lenses** and mirrors DRAW topology (no hard occlusion). CogPR proposals propagate cross-scope — weakened but never fully blocked.'
   },
   gravity: {
-    title: 'Gravitational',
-    description: 'Metric ripples at c. Masses SHEAR timing. Drift advisories adjust start order & batch size.'
+    title: 'Gravitational · Warrant Channel',
+    description: 'Global + warps phase. Metric ripples at c. **Invariant masses** SHEAR timing. Warrants and priors persist through all obstacles but warp timing — drift, demurrage, phase transitions.'
   }
 };
 
