@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { CommunicationMode, AgentSignalState, Wavefront } from "../types";
 import {
   Signal, Warrant, HarmonicTriad,
@@ -36,10 +35,13 @@ const MINTING_ICONS: Record<string, string> = {
   circuit_breaker: '⚡',
 };
 
-const SectionHeader = ({ label, open }: { label: string; open?: boolean }) => (
-  <CollapsibleTrigger className="flex items-center justify-between w-full py-1 text-xs font-bold text-primary/80 hover:text-primary transition-colors cursor-pointer">
-    <span>{label}</span>
-    <span className="text-[10px] text-muted-foreground">{open ? '▾' : '▸'}</span>
+const SectionHeader = ({ label, descriptor }: { label: string; descriptor: string }) => (
+  <CollapsibleTrigger className="flex flex-col w-full py-1.5 hover:bg-secondary/30 rounded px-1 transition-colors cursor-pointer group">
+    <div className="flex items-center justify-between w-full">
+      <span className="text-xs font-bold text-primary/80 group-hover:text-primary transition-colors">{label}</span>
+      <span className="text-[10px] text-muted-foreground group-data-[state=open]:rotate-180 transition-transform">▾</span>
+    </div>
+    <span className="text-[10px] text-muted-foreground/60 text-left leading-tight">{descriptor}</span>
   </CollapsibleTrigger>
 );
 
@@ -78,7 +80,6 @@ export const ManifoldDashboard = ({
 }: ManifoldDashboardProps) => {
   const { field } = orchestrator.state;
 
-  // SNR range
   let minSnr = 1, maxSnr = 0;
   agentSignals.forEach(s => {
     if (s.snr > 0.01) {
@@ -95,13 +96,11 @@ export const ManifoldDashboard = ({
   const activeWarrants = warrants.filter(w => w.status === 'active');
 
   return (
-    <div className="hud-panel animate-slide-in max-h-[85vh] overflow-y-auto w-72 space-y-1">
-      <h4 className="text-sm font-bold text-primary mb-2">Manifold Status</h4>
-
-      {/* Section A: Constitution Header */}
+    <div className="space-y-1 p-3 w-full">
+      {/* Section A: Constitution — defaultOpen */}
       <Collapsible defaultOpen>
-        <SectionHeader label="⚖️ Constitution" />
-        <CollapsibleContent className="space-y-1 pt-1">
+        <SectionHeader label="⚖️ Constitution" descriptor="System phase and safety flags" />
+        <CollapsibleContent className="space-y-1 pt-1 pl-1">
           <div className="flex justify-between items-center text-[11px]">
             <span className="text-muted-foreground">Phase</span>
             <span className="text-primary font-mono flex items-center gap-1.5">
@@ -124,10 +123,10 @@ export const ManifoldDashboard = ({
 
       <div className="border-t border-primary/10" />
 
-      {/* Section B: Signal Census */}
-      <Collapsible defaultOpen>
-        <SectionHeader label="📡 Signal Census" />
-        <CollapsibleContent className="space-y-1 pt-1">
+      {/* Section B: Signal Census — collapsed */}
+      <Collapsible>
+        <SectionHeader label="📡 Signal Census" descriptor="What the manifold hears right now" />
+        <CollapsibleContent className="space-y-1 pt-1 pl-1">
           <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[10px] font-mono">
             <span className="text-muted-foreground">BEACON</span><span className="text-primary text-right">{census.byKind.BEACON}</span>
             <span className="text-muted-foreground">LESSON</span><span className="text-primary text-right">{census.byKind.LESSON}</span>
@@ -149,10 +148,10 @@ export const ManifoldDashboard = ({
 
       <div className="border-t border-primary/10" />
 
-      {/* Section C: Warrant Docket */}
-      <Collapsible defaultOpen>
-        <SectionHeader label="📜 Warrant Docket" />
-        <CollapsibleContent className="space-y-1 pt-1">
+      {/* Section C: Warrant Docket — collapsed */}
+      <Collapsible>
+        <SectionHeader label="📜 Warrant Docket" descriptor="Escalated conflicts awaiting resolution" />
+        <CollapsibleContent className="space-y-1 pt-1 pl-1">
           <div className="grid grid-cols-4 gap-1 text-[10px] font-mono text-center">
             <div><span className="text-primary">{warrantLifecycle.active}</span><br/><span className="text-muted-foreground">ACT</span></div>
             <div><span className="text-primary">{warrantLifecycle.acknowledged}</span><br/><span className="text-muted-foreground">ACK</span></div>
@@ -192,10 +191,10 @@ export const ManifoldDashboard = ({
 
       <div className="border-t border-primary/10" />
 
-      {/* Section D: Harmonic Triads */}
+      {/* Section D: Harmonic Triads — collapsed */}
       <Collapsible>
-        <SectionHeader label="🔺 Harmonic Triads" />
-        <CollapsibleContent className="space-y-1 pt-1">
+        <SectionHeader label="🔺 Harmonic Triads" descriptor="Meaningful signal convergences" />
+        <CollapsibleContent className="space-y-1 pt-1 pl-1">
           <Row label="Total Detected" value={String(triadCount)} highlight={triadCount > 0} />
           {triads.slice(-3).map((t, i) => (
             <div key={i} className="text-[10px] font-mono rounded border border-[hsl(45,100%,50%)]/30 p-1 bg-[hsl(45,100%,50%)]/5">
@@ -207,10 +206,10 @@ export const ManifoldDashboard = ({
 
       <div className="border-t border-primary/10" />
 
-      {/* Section E: Economic Bridge */}
+      {/* Section E: Economic Bridge — collapsed */}
       <Collapsible>
-        <SectionHeader label="💰 Economic Bridge" />
-        <CollapsibleContent className="space-y-1 pt-1">
+        <SectionHeader label="💰 Economic Bridge" descriptor="Stake, demurrage, and disbursement" />
+        <CollapsibleContent className="space-y-1 pt-1 pl-1">
           <Row label="Demurrage Tier" value={`${economicBridge.demurrage_tier} (${field.demurrageRate}/cyc)`} />
           <Row label="Locked Stake" value={`${economicBridge.locked_stake} nUCoin`} highlight={economicBridge.locked_stake > 0} />
           <Row label="Penalty Accrued" value={`${economicBridge.penalty_accrued} nUCoin`} danger={economicBridge.penalty_accrued > 0} />
@@ -225,10 +224,10 @@ export const ManifoldDashboard = ({
 
       <div className="border-t border-primary/10" />
 
-      {/* Section F: Agent Hearing Map */}
+      {/* Section F: Hearing Map — collapsed */}
       <Collapsible>
-        <SectionHeader label="👂 Hearing Map" />
-        <CollapsibleContent className="space-y-1 pt-1">
+        <SectionHeader label="👂 Hearing Map" descriptor="How agents hear each other" />
+        <CollapsibleContent className="space-y-1 pt-1 pl-1">
           <Row label="Active Wavefronts" value={String(wavefronts.length)} highlight={wavefronts.length > 0} />
           <Row label="Agent SNR Range" value={maxSnr > 0 ? `${minSnr.toFixed(2)} – ${maxSnr.toFixed(2)}` : '—'} />
           <Row label="Field Latency" value={String(field.fieldLatency)} />

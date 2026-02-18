@@ -2,10 +2,6 @@ import { Slider } from "./ui/slider";
 import {
   GradientLevers,
   PRESETS,
-  ABSTRACTION_LABELS,
-  DIMENSIONALITY_LABELS,
-  ORGANIC_LABELS,
-  TENSION_LABELS,
 } from "../hooks/useGradientConfig";
 import {
   Collapsible, CollapsibleTrigger, CollapsibleContent
@@ -18,10 +14,16 @@ interface GradientPanelProps {
   onApplyPreset: (name: string) => void;
 }
 
+const PRESET_DESCRIPTIONS: Record<string, string> = {
+  Engineer: 'Blueprint schematic',
+  Operator: 'Live ops heatmap',
+  Physics: 'Acoustic substrate',
+};
+
 const LeverSlider = ({
-  label, shortLabel, value, onChange, keywords
+  shortLabel, value, onChange, keywords
 }: {
-  label: string; shortLabel: string; value: number;
+  shortLabel: string; value: number;
   onChange: (v: number) => void; keywords: string;
 }) => (
   <div className="space-y-1">
@@ -42,49 +44,51 @@ const LeverSlider = ({
 
 export const GradientPanel = ({ levers, labels, onSetLever, onApplyPreset }: GradientPanelProps) => {
   return (
-    <div className="fixed bottom-4 left-4 z-30 rounded-xl border border-primary/30 p-3 backdrop-blur-md w-64"
-      style={{ background: 'hsl(240 10% 3.9% / 0.95)', boxShadow: '0 0 20px hsl(180 100% 67% / 0.15)' }}
-    >
+    <div className="p-3 w-full space-y-3">
       <Collapsible defaultOpen>
         <CollapsibleTrigger className="flex items-center justify-between w-full text-xs font-bold text-primary/80 hover:text-primary transition-colors cursor-pointer pb-2">
-          <span>🎛️ Gradient Config</span>
+          <span>Perception Levers</span>
           <span className="text-[10px] text-muted-foreground">▾</span>
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-3">
           <LeverSlider
-            label="Abstraction" shortLabel="ABS"
+            shortLabel="ABS"
             value={levers.abstraction} onChange={v => onSetLever('abstraction', v)}
             keywords={labels.abstraction}
           />
           <LeverSlider
-            label="Dimensionality" shortLabel="DIM"
+            shortLabel="DIM"
             value={levers.dimensionality} onChange={v => onSetLever('dimensionality', v)}
             keywords={labels.dimensionality}
           />
           <LeverSlider
-            label="Organic" shortLabel="ORG"
+            shortLabel="ORG"
             value={levers.organic} onChange={v => onSetLever('organic', v)}
             keywords={labels.organic}
           />
           <LeverSlider
-            label="Tension" shortLabel="TEN"
+            shortLabel="TEN"
             value={levers.tension} onChange={v => onSetLever('tension', v)}
             keywords={labels.tension}
           />
-
-          <div className="flex gap-1.5 pt-1">
-            {Object.keys(PRESETS).map(name => (
-              <button
-                key={name}
-                onClick={() => onApplyPreset(name)}
-                className="flex-1 text-[9px] font-mono py-1 rounded border border-primary/20 text-primary/70 hover:bg-primary/10 hover:text-primary transition-colors"
-              >
-                {name}
-              </button>
-            ))}
-          </div>
         </CollapsibleContent>
       </Collapsible>
+
+      <div className="border-t border-primary/10 pt-2">
+        <span className="text-[10px] text-muted-foreground font-mono block mb-2">Presets</span>
+        <div className="flex flex-col gap-1.5">
+          {Object.keys(PRESETS).map(name => (
+            <button
+              key={name}
+              onClick={() => onApplyPreset(name)}
+              className="flex items-center justify-between text-[10px] font-mono py-1.5 px-2 rounded border border-primary/20 text-primary/70 hover:bg-primary/10 hover:text-primary transition-colors"
+            >
+              <span className="font-bold">{name}</span>
+              <span className="text-muted-foreground">{PRESET_DESCRIPTIONS[name]}</span>
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
