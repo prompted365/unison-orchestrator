@@ -9,16 +9,16 @@ export const Controls = ({ onBroadcast, onAddObject, onDropPin, onClear }: Contr
   return (
     <div className="flex gap-4 justify-center flex-wrap">
       <button className="control-btn" onClick={onBroadcast}>
-        Send Broadcast
+        Emit Signal
       </button>
       <button className="control-btn" onClick={onAddObject}>
-        Add Object (Wall / Lens / Mass)
+        Add Obstacle (Gate / Lens / Mass)
       </button>
       <button className="control-btn" onClick={onDropPin}>
-        Drop Modal Pin
+        Drop Epitaph
       </button>
       <button className="control-btn" onClick={onClear}>
-        Clear
+        Reset Manifold
       </button>
     </div>
   );

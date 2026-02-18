@@ -29,7 +29,7 @@ export const ObjectComponent = ({ object }: ObjectComponentProps) => {
         width: `${object.width}px`,
         height: `${object.height}px`
       }}
-      title={`${object.type} (${object.width}×${object.height})`}
+      title={`${object.type === 'wall' ? 'Permission Gate' : object.type === 'mass' ? 'Invariant Mass' : object.type === 'lens' ? 'Observability Lens' : 'Mirror'} (${object.width}×${object.height})`}
     />
   );
 };

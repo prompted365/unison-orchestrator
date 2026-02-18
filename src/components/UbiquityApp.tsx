@@ -81,9 +81,9 @@ export const UbiquityApp = () => {
     switch (currentMode) {
       case 'acoustic':
         return [
-          { id: 'wall-1', type: 'wall', x: 100, y: 80, width: 130, height: 14 },
-          { id: 'wall-2', type: 'wall', x: 640, y: 210, width: 16, height: 110 },
-          { id: 'wall-3', type: 'wall', x: 220, y: 450, width: 90, height: 14 }
+          { id: 'gate-1', type: 'wall', x: 100, y: 80, width: 130, height: 14 },
+          { id: 'gate-2', type: 'wall', x: 640, y: 210, width: 16, height: 110 },
+          { id: 'gate-3', type: 'wall', x: 220, y: 450, width: 90, height: 14 }
         ];
       case 'light':
         return [
@@ -93,9 +93,9 @@ export const UbiquityApp = () => {
         ];
       case 'gravity':
         return [
-          { id: 'mass-1', type: 'mass', x: 140, y: 130, width: 56, height: 56 },
-          { id: 'mass-2', type: 'mass', x: 590, y: 190, width: 68, height: 68 },
-          { id: 'mass-3', type: 'mass', x: 210, y: 410, width: 48, height: 48 }
+          { id: 'invariant-1', type: 'mass', x: 140, y: 130, width: 56, height: 56 },
+          { id: 'invariant-2', type: 'mass', x: 590, y: 190, width: 68, height: 68 },
+          { id: 'invariant-3', type: 'mass', x: 210, y: 410, width: 48, height: 48 }
         ];
       default:
         return [];
@@ -122,7 +122,7 @@ export const UbiquityApp = () => {
     switch (mode) {
       case 'acoustic':
         newObject = {
-          id: `wall-${Date.now()}`,
+          id: `gate-${Date.now()}`,
           type: 'wall',
           x,
           y,
@@ -142,7 +142,7 @@ export const UbiquityApp = () => {
         break;
       case 'gravity':
         newObject = {
-          id: `mass-${Date.now()}`,
+          id: `invariant-${Date.now()}`,
           type: 'mass',
           x,
           y,
@@ -182,23 +182,23 @@ export const UbiquityApp = () => {
     switch (currentMode) {
       case 'acoustic':
         return {
-          title: 'Avoid 440Hz near corners',
-          body: 'Echo density suggests specular traps. Lower gain, raise threshold.',
-          tags: '#acoustic #wisdom',
+          title: 'Siren: Avoid 440Hz near corners',
+          body: 'Echo density suggests specular traps. Lower gain, raise threshold. Muffling increases per hop.',
+          tags: '#siren #acoustic #escalation',
           effect: { type: 'penalty', delta: 0.08 }
         };
       case 'light':
         return {
-          title: 'Reflection note',
-          body: 'Mirror flingback at α≈42°. Prefer diffuse lane; deweight specular.',
-          tags: '#optics #routing',
+          title: 'CogPR: Reflection note',
+          body: 'Mirror flingback at α≈42°. Prefer diffuse lane; deweight specular. Cross-scope attenuation observed.',
+          tags: '#cogpr #optics #proposal',
           effect: { focus: -0.12 }
         };
       case 'gravity':
         return {
-          title: 'Drift advisory',
-          body: 'Shear pocket detected. Stagger starts; shrink batch size.',
-          tags: '#gravity #timing',
+          title: 'Warrant: Drift advisory',
+          body: 'Shear pocket detected. Stagger starts; shrink batch size. Invariant field warping phase.',
+          tags: '#warrant #gravity #phase',
           effect: { skew: 1.2 }
         };
     }
@@ -214,11 +214,12 @@ export const UbiquityApp = () => {
         {/* Header */}
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
-            Ubiquity Communication Modes
+            Signal Manifold Monitor
           </h1>
           <p className="text-sm text-secondary-foreground max-w-4xl mx-auto">
-            Production‑grade, Harmony‑compliant demo. Acoustic echoes WARN, Light reflections DRAW, 
-            Gravity ripples SHEAR. Epitaphs are modal: warnings, reflection notes, or drift advisories.
+            Hybrid physics simulator × CGG semantic layer. Acoustic = Sirens (local, muffled). 
+            Light = CogPR (broad, attenuated). Gravity = Warrants (global, phase-warping). 
+            Epitaphs are modal: warnings, reflection notes, or drift advisories.
           </p>
         </div>
 

@@ -7,9 +7,9 @@ interface ModeSelectorProps {
 
 export const ModeSelector = ({ mode, onModeChange }: ModeSelectorProps) => {
   const modes = [
-    { id: 'acoustic' as const, label: 'Acoustic', className: 'acoustic' },
-    { id: 'light' as const, label: 'Light / EM', className: 'light' },
-    { id: 'gravity' as const, label: 'Gravitational', className: 'gravity' }
+    { id: 'acoustic' as const, label: 'Acoustic · Siren', className: 'acoustic' },
+    { id: 'light' as const, label: 'Light · CogPR', className: 'light' },
+    { id: 'gravity' as const, label: 'Gravity · Warrant', className: 'gravity' }
   ];
 
   return (
