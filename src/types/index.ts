@@ -37,13 +37,37 @@ export interface ModalPin {
 
 export interface Effect {
   id: string;
-  type: 'ring' | 'echo' | 'smear' | 'arc' | 'metric' | 'ray' | 'acoustic-wave' | 'gravity-wave';
+  type: 'ring' | 'echo' | 'smear' | 'arc' | 'metric' | 'ray' | 'acoustic-wave' | 'gravity-wave'
+    | 'reflection' | 'refraction' | 'triad-resonance' | 'warrant-pulse';
   x: number;
   y: number;
   size?: number;
   color?: string;
   duration?: number;
   createdAt: number;
+}
+
+export interface Wavefront {
+  id: string;
+  sourceX: number;
+  sourceY: number;
+  radius: number;
+  energy: number;
+  velocity: number; // px per second (scaled)
+  mode: CommunicationMode;
+  isEcho: boolean;
+  parentId?: string;
+  angle?: number; // for directional wavefronts (reflections)
+  createdAt: number;
+  hasSpawnedEchoes?: Set<string>; // track which objects already spawned echoes
+}
+
+export interface AgentSignalState {
+  agentId: string;
+  snr: number;
+  peakSnr: number;
+  receivedAt: number;
+  phaseDelay: number;
 }
 
 export interface OrchestratorState {

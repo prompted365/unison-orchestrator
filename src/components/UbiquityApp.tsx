@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback, Dispatch, SetStateAction } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ModeSelector } from "./ModeSelector";
 import { Canvas } from "./Canvas";
 import { Controls } from "./Controls";
 import { HUD } from "./HUD";
 import { ModeExplanation } from "./ModeExplanation";
 import { useOrchestrator } from "../hooks/useOrchestrator";
+import { useSimulation } from "../hooks/useSimulation";
+import { useSignalEngine } from "../hooks/useSignalEngine";
 import { CommunicationMode, Node, WorldObject, ModalPin, Effect } from "../types";
 
 export const UbiquityApp = () => {
@@ -15,6 +17,26 @@ export const UbiquityApp = () => {
   const [effects, setEffects] = useState<Effect[]>([]);
 
   const orchestrator = useOrchestrator(mode, objects);
+  const simulation = useSimulation(mode, nodes, objects);
+  const signalEngine = useSignalEngine(
+    mode,
+    orchestrator.state.field.demurrageRate,
+    orchestrator.state.field.breachRisk
+  );
+
+  // Update agent node strength from simulation SNR
+  useEffect(() => {
+    if (simulation.agentSignals.size === 0) return;
+    setNodes(prev => prev.map(n => {
+      if (n.type !== 'agent') return n;
+      const sig = simulation.agentSignals.get(n.id);
+      if (!sig) return n;
+      let strength: 'weak' | 'medium' | 'strong' = 'weak';
+      if (sig.snr > 0.6) strength = 'strong';
+      else if (sig.snr > 0.25) strength = 'medium';
+      return { ...n, lastSNR: sig.snr, strength };
+    }));
+  }, [simulation.agentSignals]);
 
   // Initialize scene
   const initializeScene = useCallback(() => {
@@ -22,8 +44,8 @@ export const UbiquityApp = () => {
     setObjects([]);
     setModalPins([]);
     setEffects([]);
-    
-    // Create orchestrator node
+    simulation.reset();
+
     const orchestratorNode: Node = {
       id: 'orchestrator',
       type: 'orchestrator',
@@ -34,7 +56,6 @@ export const UbiquityApp = () => {
       lastSNR: 1
     };
 
-    // Create agent nodes in clusters
     const agents: Node[] = [];
     const clusters = [
       { cx: 310, cy: 210, n: 3 },
@@ -54,7 +75,7 @@ export const UbiquityApp = () => {
         const distance = 10 + Math.random() * 36;
         const x = Math.max(16, Math.min(784, cluster.cx + Math.cos(angle) * distance));
         const y = Math.max(16, Math.min(544, cluster.cy + Math.sin(angle) * distance));
-        
+
         const agentCapabilities = subsystems
           .sort(() => Math.random() - 0.5)
           .slice(0, 2 + Math.floor(Math.random() * 2));
@@ -74,10 +95,7 @@ export const UbiquityApp = () => {
     });
 
     setNodes([orchestratorNode, ...agents]);
-
-    // Add initial objects based on mode
-    const initialObjects = getInitialObjects(mode);
-    setObjects(initialObjects);
+    setObjects(getInitialObjects(mode));
   }, [mode]);
 
   const getInitialObjects = (currentMode: CommunicationMode): WorldObject[] => {
@@ -105,63 +123,98 @@ export const UbiquityApp = () => {
     }
   };
 
-  // Initialize on mount and mode change
   useEffect(() => {
     initializeScene();
   }, [initializeScene]);
 
-  const [triggerBroadcast, setTriggerBroadcast] = useState(0);
-
   const handleBroadcast = useCallback(() => {
-    // Trigger Canvas broadcast by updating state
-    setTriggerBroadcast(prev => prev + 1);
-  }, []);
+    const orch = nodes.find(n => n.type === 'orchestrator');
+    if (!orch) return;
+
+    // Emit wavefront into simulation
+    simulation.emitWavefront(orch.x, orch.y);
+
+    // Emit signal into CGG engine
+    signalEngine.emitSignal();
+
+    // Tick orchestrator state
+    orchestrator.tick();
+
+    // Visual effect for broadcast origin
+    const effectType = mode === 'acoustic' ? 'acoustic-wave' : mode === 'light' ? 'ring' : 'gravity-wave';
+    const newEffect: Effect = {
+      id: `effect-${Date.now()}`,
+      type: effectType as Effect['type'],
+      x: orch.x,
+      y: orch.y,
+      duration: mode === 'acoustic' ? 2500 : mode === 'gravity' ? 3000 : 2000,
+      createdAt: Date.now()
+    };
+    setEffects(prev => [...prev, newEffect]);
+    setTimeout(() => {
+      setEffects(prev => prev.filter(e => e.id !== newEffect.id));
+    }, newEffect.duration || 2000);
+
+    // Light rays
+    if (mode === 'light') {
+      for (let i = 0; i < 18; i++) {
+        const angle = (i / 18) * Math.PI * 2;
+        const rayEffect: Effect = {
+          id: `ray-${Date.now()}-${i}`,
+          type: 'ray',
+          x: orch.x,
+          y: orch.y,
+          size: angle,
+          duration: 1200,
+          createdAt: Date.now()
+        };
+        setEffects(prev => [...prev, rayEffect]);
+        setTimeout(() => {
+          setEffects(prev => prev.filter(e => e.id !== rayEffect.id));
+        }, 1200);
+      }
+    }
+
+    // Triad resonance effect if triads detected
+    if (signalEngine.triads.length > 0) {
+      const triadEffect: Effect = {
+        id: `triad-${Date.now()}`,
+        type: 'triad-resonance',
+        x: orch.x,
+        y: orch.y,
+        size: 80,
+        duration: 3000,
+        createdAt: Date.now()
+      };
+      setEffects(prev => [...prev, triadEffect]);
+      setTimeout(() => {
+        setEffects(prev => prev.filter(e => e.id !== triadEffect.id));
+      }, 3000);
+    }
+  }, [mode, nodes, simulation, signalEngine, orchestrator]);
 
   const handleAddObject = useCallback(() => {
     const x = Math.random() * 600 + 100;
     const y = Math.random() * 400 + 80;
-    
+
     let newObject: WorldObject;
     switch (mode) {
       case 'acoustic':
-        newObject = {
-          id: `gate-${Date.now()}`,
-          type: 'wall',
-          x,
-          y,
-          width: 60,
-          height: 12
-        };
+        newObject = { id: `gate-${Date.now()}`, type: 'wall', x, y, width: 60, height: 12 };
         break;
       case 'light':
-        newObject = {
-          id: `lens-${Date.now()}`,
-          type: 'lens',
-          x,
-          y,
-          width: 34,
-          height: 34
-        };
+        newObject = { id: `lens-${Date.now()}`, type: 'lens', x, y, width: 34, height: 34 };
         break;
       case 'gravity':
-        newObject = {
-          id: `invariant-${Date.now()}`,
-          type: 'mass',
-          x,
-          y,
-          width: 46,
-          height: 46
-        };
+        newObject = { id: `invariant-${Date.now()}`, type: 'mass', x, y, width: 46, height: 46 };
         break;
     }
-    
     setObjects(prev => [...prev, newObject]);
   }, [mode]);
 
   const handleDropPin = useCallback(() => {
     const x = Math.random() * 600 + 100;
     const y = Math.random() * 400 + 80;
-    
     const pinData = getModalPinData(mode);
     const newPin: ModalPin = {
       id: `pin-${Date.now()}`,
@@ -172,10 +225,7 @@ export const UbiquityApp = () => {
       ttl: mode === 'acoustic' ? 6000 : 5000,
       createdAt: Date.now()
     };
-    
     setModalPins(prev => [...prev, newPin]);
-    
-    // Remove pin after TTL
     setTimeout(() => {
       setModalPins(prev => prev.filter(pin => pin.id !== newPin.id));
     }, newPin.ttl);
@@ -214,36 +264,30 @@ export const UbiquityApp = () => {
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
             Signal Manifold Monitor
           </h1>
           <p className="text-sm text-secondary-foreground max-w-4xl mx-auto">
-            Hybrid physics simulator × CGG semantic layer. Acoustic = Sirens (local, muffled). 
-            Light = CogPR (broad, attenuated). Gravity = Warrants (global, phase-warping). 
+            Hybrid physics simulator × CGG semantic layer. Acoustic = Sirens (local, muffled).
+            Light = CogPR (broad, attenuated). Gravity = Warrants (global, phase-warping).
             Epitaphs are modal: warnings, reflection notes, or drift advisories.
           </p>
         </div>
 
-        {/* Mode Selector */}
         <ModeSelector mode={mode} onModeChange={setMode} />
 
-        {/* Canvas */}
         <Canvas
           mode={mode}
           nodes={nodes}
           objects={objects}
           modalPins={modalPins}
           effects={effects}
-          onBroadcast={handleBroadcast}
-          setNodes={setNodes}
-          setEffects={setEffects}
-          orchestrator={orchestrator}
-          triggerBroadcast={triggerBroadcast}
+          wavefronts={simulation.wavefronts}
+          agentSignals={simulation.agentSignals}
+          onCanvasClick={handleBroadcast}
         />
 
-        {/* Controls */}
         <Controls
           onBroadcast={handleBroadcast}
           onAddObject={handleAddObject}
@@ -251,12 +295,18 @@ export const UbiquityApp = () => {
           onClear={handleClear}
         />
 
-        {/* Mode Explanation */}
         <ModeExplanation mode={mode} />
       </div>
 
-      {/* HUD */}
-      <HUD mode={mode} orchestrator={orchestrator} />
+      <HUD
+        mode={mode}
+        orchestrator={orchestrator}
+        wavefronts={simulation.wavefronts}
+        agentSignals={simulation.agentSignals}
+        signals={signalEngine.signals}
+        warrants={signalEngine.warrants}
+        triadCount={signalEngine.triadCount}
+      />
     </div>
   );
 };

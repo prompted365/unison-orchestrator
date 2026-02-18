@@ -300,6 +300,33 @@ All colors MUST be HSL.
     border: 1px solid hsl(var(--gravity-color) / 0.5);
     color: hsl(var(--gravity-color));
   }
+
+  /* New effect types */
+  .effect-reflection {
+    @apply absolute rounded-full pointer-events-none;
+    background: radial-gradient(circle, hsl(var(--acoustic-color) / 0.6) 0%, transparent 70%);
+    animation: flash-fade 0.8s ease-out forwards;
+  }
+
+  .effect-refraction {
+    @apply absolute rounded-full pointer-events-none;
+    background: radial-gradient(circle, hsl(var(--light-color) / 0.5) 0%, transparent 60%);
+    animation: flash-fade 1s ease-out forwards;
+  }
+
+  .effect-triad-resonance {
+    @apply absolute rounded-full pointer-events-none z-20;
+    border: 2px solid hsl(var(--neon-gold));
+    box-shadow: 0 0 20px hsl(var(--neon-gold) / 0.6), inset 0 0 20px hsl(var(--neon-gold) / 0.2);
+    animation: triad-pulse 3s ease-in-out forwards;
+  }
+
+  .effect-warrant-pulse {
+    @apply absolute rounded-lg pointer-events-none z-20;
+    border: 2px solid hsl(var(--gravity-color));
+    box-shadow: 0 0 15px hsl(var(--gravity-color) / 0.5);
+    animation: warrant-blink 2s ease-in-out infinite;
+  }
 }
 
 @layer utilities {
@@ -439,6 +466,48 @@ All colors MUST be HSL.
     100% {
       transform: scale(40);
       opacity: 0;
+    }
+  }
+
+  @keyframes flash-fade {
+    0% {
+      opacity: 1;
+      transform: scale(0.5);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(2);
+    }
+  }
+
+  @keyframes triad-pulse {
+    0% {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+    20% {
+      opacity: 1;
+      transform: scale(1);
+      box-shadow: 0 0 30px hsl(var(--neon-gold) / 0.8), inset 0 0 30px hsl(var(--neon-gold) / 0.3);
+    }
+    60% {
+      opacity: 0.7;
+      transform: scale(1.2);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.5);
+    }
+  }
+
+  @keyframes warrant-blink {
+    0%, 100% {
+      opacity: 0.3;
+      box-shadow: 0 0 10px hsl(var(--gravity-color) / 0.3);
+    }
+    50% {
+      opacity: 0.9;
+      box-shadow: 0 0 25px hsl(var(--gravity-color) / 0.7);
     }
   }
   
