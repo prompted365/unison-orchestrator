@@ -12,7 +12,8 @@ let wfCounter = 0;
 export const useSimulation = (
   mode: CommunicationMode,
   nodes: Node[],
-  objects: WorldObject[]
+  objects: WorldObject[],
+  timeScaleRef?: React.MutableRefObject<number>
 ) => {
   const physics = usePhysics(mode);
   const [wavefronts, setWavefronts] = useState<Wavefront[]>([]);
@@ -39,7 +40,8 @@ export const useSimulation = (
       return;
     }
 
-    const dt = Math.min((time - lastTimeRef.current) / 1000, 0.05); // cap at 50ms
+    const rawDt = Math.min((time - lastTimeRef.current) / 1000, 0.05);
+    const dt = rawDt * (timeScaleRef?.current ?? 1); // apply time scale
     lastTimeRef.current = time;
     const phys = physicsRef.current;
     const currentNodes = nodesRef.current;
@@ -199,12 +201,12 @@ export const useSimulation = (
         // Has the wavefront reached this agent?
         if (wf.radius >= distPx - 8) {
           const distM = distPx / 60;
-          const blocked = phys.isOccluded(
+          const attenuation = phys.computeAttenuation(
             { x: wf.sourceX, y: wf.sourceY },
             agent,
             currentObjects
           );
-          let snr = phys.calculateSignal(distM, blocked) * wf.energy;
+          let snr = phys.calculateSignal(distM, attenuation) * wf.energy;
 
           // Gravity phase delay
           if (currentMode === 'gravity') {

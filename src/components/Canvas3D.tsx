@@ -89,7 +89,7 @@ const Node3D = ({
   });
 
   const tooltip = useMemo(() => {
-    if (isOrch) return 'Conductor (Mogul)';
+    if (isOrch) return 'Mogul — Estate Conductor';
     const group = node.actorGroup ? ACTOR_GROUP_LABELS[node.actorGroup] || node.actorGroup : 'Agent';
     const idx = node.actorIndex != null ? ` #${node.actorIndex + 1}` : '';
     const caps = node.capabilities.map(c => ACTOR_GROUP_LABELS[c] || c).join(', ');
@@ -233,9 +233,9 @@ const Object3D = ({ obj, mode }: { obj: WorldObject; mode: CommunicationMode }) 
     if (obj.type === 'mass') meshRef.current.rotation.y += dt * 0.12;
   });
 
-  const label = obj.type === 'wall' ? 'Permission Gate'
+  const label = obj.type === 'wall' ? 'Attenuation Boundary'
     : obj.type === 'lens' ? 'Observability Lens'
-    : obj.type === 'mirror' ? 'Mirror'
+    : obj.type === 'mirror' ? 'Specular Surface'
     : 'Invariant Mass';
 
   const height3D = obj.type === 'wall' ? 0.3 : obj.type === 'mass' ? Math.max(w, h) : 0.15;
@@ -336,7 +336,7 @@ const Object3D = ({ obj, mode }: { obj: WorldObject; mode: CommunicationMode }) 
   );
 };
 
-// ─── 3D Wavefront — mode-specific rendering ─────────────────────────
+// ─── 3D Wavefront — mode-specific SPHERICAL rendering ───────────────
 const Wavefront3D = ({ wf, objects }: { wf: Wavefront; objects: WorldObject[] }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const r = toWorld(wf.radius);
@@ -346,21 +346,19 @@ const Wavefront3D = ({ wf, objects }: { wf: Wavefront; objects: WorldObject[] })
   const opacity = Math.min(0.6, wf.energy * 0.7);
   if (opacity < 0.01 || (!wf.isBeam && r > 12)) return null;
 
+  // Emitter height: orchestrator at 0.3, agents at 0.15
+  const emitterY = wf.sourceX === 400 && wf.sourceY === 280 ? 0.3 : 0.15;
+
   // ── BEAM wavefront (mirror reflection): bright narrow cylinder ──
   if (wf.isBeam && wf.angle != null) {
-    const beamLength = 0.4; // world units of visible beam segment
-    const bx = Math.cos(wf.angle);
-    const bz = Math.sin(wf.angle);
+    const beamLength = 0.4;
     const brightness = Math.min(1, wf.energy * 1.5);
     return (
       <group position={[px, 0.12, pz]}>
-        <mesh
-          rotation={[0, -wf.angle + Math.PI / 2, Math.PI / 2]}
-        >
+        <mesh rotation={[0, -wf.angle + Math.PI / 2, Math.PI / 2]}>
           <cylinderGeometry args={[0.015, 0.015, beamLength, 8]} />
           <meshBasicMaterial color="#ffffff" transparent opacity={brightness * 0.95} depthWrite={false} />
         </mesh>
-        {/* Bright glow around beam */}
         <mesh rotation={[0, -wf.angle + Math.PI / 2, Math.PI / 2]}>
           <cylinderGeometry args={[0.06, 0.06, beamLength * 0.8, 8]} />
           <meshBasicMaterial color="#88eeff" transparent opacity={brightness * 0.25} depthWrite={false} />
@@ -370,75 +368,99 @@ const Wavefront3D = ({ wf, objects }: { wf: Wavefront; objects: WorldObject[] })
     );
   }
 
-  // ── ACOUSTIC: expanding torus ring (pressure wave) ──
+  // ── ACOUSTIC: expanding wireframe SPHERE (omnidirectional pressure shell) ──
   if (wf.mode === 'acoustic') {
-    const tubeRadius = 0.03 + wf.energy * 0.04;
-    // Color shifts from bright orange → dull amber as energy decays
-    const hue = 25 + (1 - wf.energy) * 15; // 25°→40°
+    const hue = 25 + (1 - wf.energy) * 15;
     const sat = 0.8 + wf.energy * 0.2;
     const lit = 0.35 + wf.energy * 0.25;
     const waveColor = new THREE.Color().setHSL(hue / 360, sat, lit);
-    const yOscillation = Math.sin(r * 8) * 0.02 * wf.energy;
 
     if (wf.isEcho) {
-      // Echo: wireframe torus, dimmer, greenish tint
       const echoColor = new THREE.Color().setHSL(80 / 360, 0.5, 0.35);
       return (
-        <mesh ref={meshRef} position={[px, 0.08 + yOscillation, pz]} rotation={[-Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[r, tubeRadius * 0.6, 8, 48]} />
-          <meshBasicMaterial color={echoColor} transparent opacity={opacity * 0.5} wireframe side={THREE.DoubleSide} depthWrite={false} />
+        <mesh ref={meshRef} position={[px, emitterY, pz]}>
+          <sphereGeometry args={[r, 16, 12]} />
+          <meshBasicMaterial color={echoColor} transparent opacity={opacity * 0.4} wireframe depthWrite={false} />
         </mesh>
       );
     }
 
     return (
-      <mesh ref={meshRef} position={[px, 0.1 + yOscillation, pz]} rotation={[-Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[r, tubeRadius, 10, 64]} />
-        <meshBasicMaterial color={waveColor} transparent opacity={opacity} side={THREE.DoubleSide} depthWrite={false} />
+      <mesh ref={meshRef} position={[px, emitterY, pz]}>
+        <sphereGeometry args={[r, 24, 16]} />
+        <meshBasicMaterial color={waveColor} transparent opacity={opacity * 0.6} wireframe depthWrite={false} />
       </mesh>
     );
   }
 
-  // ── LIGHT: thin expanding disc ring ──
+  // ── LIGHT: thin transparent SPHERE shell (omnidirectional) ──
   if (wf.mode === 'light') {
     return (
-      <mesh ref={meshRef} position={[px, 0.05, pz]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[Math.max(0, r - 0.02), r + 0.01, 64]} />
-        <meshBasicMaterial color={color} transparent opacity={opacity * 0.8} side={THREE.DoubleSide} depthWrite={false} />
-      </mesh>
+      <group position={[px, emitterY, pz]}>
+        {/* Outer shell */}
+        <mesh ref={meshRef}>
+          <sphereGeometry args={[r, 32, 24]} />
+          <meshBasicMaterial color={color} transparent opacity={opacity * 0.1} side={THREE.DoubleSide} depthWrite={false} />
+        </mesh>
+        {/* Inner shell for thin-shell effect */}
+        <mesh>
+          <sphereGeometry args={[Math.max(0, r - 0.02), 32, 24]} />
+          <meshBasicMaterial color={color} transparent opacity={opacity * 0.06} side={THREE.BackSide} depthWrite={false} />
+        </mesh>
+      </group>
     );
   }
 
-  // ── GRAVITY: undulating elliptical ring ──
+  // ── GRAVITY: undulating SPHERE (omnidirectional spacetime disturbance) ──
   if (wf.mode === 'gravity') {
-    // Compute dilation-based distortion near masses
-    let scaleX = 1, scaleZ = 1;
-    objects.filter(o => o.type === 'mass').forEach(mass => {
-      const cx = toWorld(mass.x + mass.width / 2 - CENTER_X);
-      const cz = toWorld(mass.y + mass.height / 2 - CENTER_Y);
-      const dist = Math.sqrt((px - cx) ** 2 + (pz - cz) ** 2);
-      const pull = 0.3 / (dist + 0.5);
-      const angle = Math.atan2(pz - cz, px - cx);
-      scaleX += pull * Math.abs(Math.cos(angle));
-      scaleZ += pull * Math.abs(Math.sin(angle));
-    });
-
-    const yUndulation = Math.sin(r * 4 + Date.now() * 0.001) * 0.04;
-
     return (
-      <mesh
-        ref={meshRef}
-        position={[px, 0.08 + yUndulation, pz]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        scale={[scaleX, scaleZ, 1]}
-      >
-        <torusGeometry args={[r, 0.025, 8, 64]} />
-        <meshBasicMaterial color="#9333ea" transparent opacity={opacity * 0.7} side={THREE.DoubleSide} depthWrite={false} />
-      </mesh>
+      <GravityWavefrontSphere
+        r={r}
+        position={[px, emitterY, pz]}
+        opacity={opacity}
+        objects={objects}
+        px={px}
+        pz={pz}
+      />
     );
   }
 
   return null;
+};
+
+// Gravity wavefront sphere with vertex displacement
+const GravityWavefrontSphere = ({ r, position, opacity, objects, px, pz }: {
+  r: number; position: [number, number, number]; opacity: number;
+  objects: WorldObject[]; px: number; pz: number;
+}) => {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const geoRef = useRef<THREE.SphereGeometry>(null);
+
+  useFrame(() => {
+    if (!geoRef.current || !meshRef.current) return;
+    const geo = geoRef.current;
+    const pos = geo.attributes.position;
+    const time = Date.now() * 0.001;
+
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      const y = pos.getY(i);
+      const z = pos.getZ(i);
+      const len = Math.sqrt(x * x + y * y + z * z) || 1;
+      // Sine ripple on surface
+      const ripple = Math.sin(len * 8 - time * 2) * 0.03 * opacity;
+      const scale = r / len;
+      pos.setXYZ(i, x * scale + (x / len) * ripple, y * scale + (y / len) * ripple, z * scale + (z / len) * ripple);
+    }
+    pos.needsUpdate = true;
+  });
+
+  return (
+    <mesh ref={meshRef} position={position}>
+      <sphereGeometry ref={geoRef} args={[r, 24, 16]} />
+      <meshBasicMaterial color="#9333ea" transparent opacity={opacity * 0.5} side={THREE.DoubleSide} depthWrite={false} wireframe />
+    </mesh>
+  );
 };
 
 // ─── 3D Modal Pin (floating card) ────────────────────────────────────
