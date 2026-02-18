@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ModeSelector } from "./ModeSelector";
-import { Canvas } from "./Canvas";
+import { Canvas3D } from "./Canvas3D";
 import { Controls } from "./Controls";
 import { HUD } from "./HUD";
 import { ModeExplanation } from "./ModeExplanation";
@@ -11,8 +11,7 @@ import { CommunicationMode, Node, WorldObject, ModalPin, Effect } from "../types
 
 export const UbiquityApp = () => {
   const [mode, setMode] = useState<CommunicationMode>("acoustic");
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const zoomTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [cockpitNodeId, setCockpitNodeId] = useState<string | null>(null);
   const [nodes, setNodes] = useState<Node[]>([]);
   const [objects, setObjects] = useState<WorldObject[]>([]);
   const [modalPins, setModalPins] = useState<ModalPin[]>([]);
@@ -132,11 +131,6 @@ export const UbiquityApp = () => {
   const handleBroadcast = useCallback(() => {
     const orch = nodes.find(n => n.type === 'orchestrator');
     if (!orch) return;
-
-    // Zoom camera in then ease out
-    if (zoomTimeoutRef.current) clearTimeout(zoomTimeoutRef.current);
-    setZoomLevel(1.18);
-    zoomTimeoutRef.current = setTimeout(() => setZoomLevel(1), 1800);
 
     // Emit wavefront into simulation
     simulation.emitWavefront(orch.x, orch.y);
@@ -284,25 +278,19 @@ export const UbiquityApp = () => {
 
         <ModeSelector mode={mode} onModeChange={setMode} />
 
-        <div
-          className="overflow-hidden rounded-xl"
-          style={{
-            transform: `scale(${zoomLevel})`,
-            transition: 'transform 0.6s cubic-bezier(0.22, 1, 0.36, 1)',
-            transformOrigin: 'center center',
-          }}
-        >
-          <Canvas
-            mode={mode}
-            nodes={nodes}
-            objects={objects}
-            modalPins={modalPins}
-            effects={effects}
-            wavefronts={simulation.wavefronts}
-            agentSignals={simulation.agentSignals}
-            onCanvasClick={handleBroadcast}
-          />
-        </div>
+        <Canvas3D
+          mode={mode}
+          nodes={nodes}
+          objects={objects}
+          modalPins={modalPins}
+          effects={effects}
+          wavefronts={simulation.wavefronts}
+          agentSignals={simulation.agentSignals}
+          onCanvasClick={handleBroadcast}
+          cockpitNodeId={cockpitNodeId}
+          onEnterCockpit={setCockpitNodeId}
+          onExitCockpit={() => setCockpitNodeId(null)}
+        />
 
         <Controls
           onBroadcast={handleBroadcast}
