@@ -28,27 +28,38 @@ export const usePhysics = (mode: CommunicationMode) => {
       return Math.sqrt(dx * dx + dy * dy);
     },
 
-    // Inverse-square + absorption attenuation
-    calculateSignal: (distanceMeters: number, blocked: boolean) => {
-      if (distanceMeters < 0.5) return 1;
+    // Graduated attenuation: muffling_per_hop model
+    computeAttenuation: (a: { x: number; y: number }, b: { x: number; y: number }, objects: WorldObject[]): number => {
+      if (mode === 'gravity') return 1; // gravity bypasses muffling
+      const MUFFLING_PER_HOP = 0.6;
+      const walls = objects.filter(obj => obj.type === 'wall');
+      let crossings = 0;
+      for (const wall of walls) {
+        if (lineIntersectsRect(a.x, a.y, b.x, b.y, wall.x, wall.y, wall.width, wall.height)) {
+          crossings++;
+        }
+      }
+      return Math.pow(MUFFLING_PER_HOP, crossings);
+    },
+
+    // Inverse-square + absorption + attenuation factor
+    calculateSignal: (distanceMeters: number, attenuationFactor: number) => {
+      if (distanceMeters < 0.5) return 1 * attenuationFactor;
       
       if (mode === 'acoustic') {
-        // 1/r^2 * e^(-alpha*r) * occlusion
         const inverseSquare = 1 / (1 + distanceMeters * distanceMeters);
         const absorption = Math.exp(-profile.alpha * distanceMeters);
-        const occlusion = blocked ? 0.15 : 1;
-        return Math.min(1, Math.max(0, inverseSquare * absorption * occlusion * 8));
+        return Math.min(1, Math.max(0, inverseSquare * absorption * attenuationFactor * 8));
       } else if (mode === 'light') {
-        // 1/r^2 with very low absorption, no hard block
         const inverseSquare = 1 / (1 + distanceMeters * distanceMeters * 0.3);
         const absorption = Math.exp(-profile.alpha * distanceMeters);
-        return Math.min(1, Math.max(0, inverseSquare * absorption * 4));
+        return Math.min(1, Math.max(0, inverseSquare * absorption * attenuationFactor * 4));
       } else {
-        // Gravity: no attenuation
         return 1;
       }
     },
 
+    // Legacy compat — now returns attenuation factor (0-1) not boolean
     isOccluded: (a: { x: number; y: number }, b: { x: number; y: number }, objects: WorldObject[]) => {
       if (mode !== 'acoustic') return false;
       const walls = objects.filter(obj => obj.type === 'wall');

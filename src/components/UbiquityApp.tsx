@@ -9,6 +9,7 @@ import { useOrchestrator } from "../hooks/useOrchestrator";
 import { useSimulation } from "../hooks/useSimulation";
 import { useSignalEngine } from "../hooks/useSignalEngine";
 import { useGradientConfig } from "../hooks/useGradientConfig";
+import { useTimeScale } from "../hooks/useTimeScale";
 import { CommunicationMode, Node, WorldObject, ModalPin, Effect } from "../types";
 
 export const UbiquityApp = () => {
@@ -23,8 +24,12 @@ export const UbiquityApp = () => {
   const [isManifoldOpen, setIsManifoldOpen] = useState(false);
   const [isGradientOpen, setIsGradientOpen] = useState(false);
 
+  const { timeScale, setTimeScale, presets, annotation, normalizationNote } = useTimeScale(mode);
+  const timeScaleRef = useRef(timeScale);
+  timeScaleRef.current = timeScale;
+
   const orchestrator = useOrchestrator(mode, objects);
-  const simulation = useSimulation(mode, nodes, objects);
+  const simulation = useSimulation(mode, nodes, objects, timeScaleRef);
   const signalEngine = useSignalEngine(
     mode,
     orchestrator.state.field.demurrageRate,
@@ -302,8 +307,8 @@ export const UbiquityApp = () => {
           <h1 className="text-xs sm:text-sm font-bold font-mono text-primary tracking-wider whitespace-nowrap">
             Constitution of Attention
           </h1>
-          <span className="hidden sm:inline text-[10px] text-muted-foreground font-mono">
-            Signal Manifold
+          <span className="hidden sm:inline text-[10px] text-muted-foreground/60 font-mono">
+            opTorq Estate — Ubiquity OS
           </span>
         </div>
 
@@ -364,6 +369,12 @@ export const UbiquityApp = () => {
           warrants={signalEngine.warrants}
           onAcknowledgeWarrant={signalEngine.acknowledgeWarrant}
           onDismissWarrant={signalEngine.dismissWarrant}
+          mode={mode}
+          timeScale={timeScale}
+          onSetTimeScale={setTimeScale}
+          timeAnnotation={annotation}
+          normalizationNote={normalizationNote}
+          presets={presets}
         />
         <ModeExplanation mode={mode} />
       </div>
