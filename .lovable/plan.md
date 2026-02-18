@@ -1,81 +1,134 @@
 
 
-# Signal Fidelity and Canvas Overhaul
+# Omnidirectional Wavefronts, Time Control, and Narrative Coherence
 
-## 1. Canvas Fills Available Space
+This plan combines the previously approved physics changes (spherical wavefronts + time scale) with the narrative corrections you've described: renaming "Permission Gates" to reflect the actual governance model, and contextualizing operationTorque as a live working system.
 
-The 3D canvas has `h-[560px]` hardcoded while its parent is `flex-1`. The canvas needs to fill 100% of its container.
+## 1. Rename Objects to Match the Governance Model
 
-**File: `src/components/Canvas3D.tsx`** (line 653)
-- Change `h-[560px]` to `w-full h-full` so the R3F Canvas fills the flex container
+"Permission Gate" implies a binary access control. The actual model is a **hearing threshold boundary** -- a surface where muffling_per_hop attenuates signal, frequency filters apply, and the pub/sub matrix determines who hears what. Objects should be renamed throughout:
 
-## 2. Physics Velocity Tuning
+| Current Name | New Name | Rationale |
+|---|---|---|
+| Permission Gate (wall) | Attenuation Boundary | Models muffling_per_hop across container edges. Doesn't block -- attenuates. |
+| Observability Lens | Observability Lens | Already accurate -- focuses attention, refracts signal topology. |
+| Mirror | Specular Surface | Already accurate -- reflects light-band signals at computed angles. |
+| Invariant Mass | Invariant Mass | Already accurate -- warps phase timing via gravitational metaphor. |
 
-Current velocities make light and gravity indistinguishable (both 6000 px/s). Real-world ratios inform the spirit:
+**Files affected:** `Canvas3D.tsx` (Object3D labels, tooltips), `ModeExplanation.tsx` (descriptions), `Controls.tsx` (tooltip text), `UbiquityApp.tsx` (tooltip text for "Add Obstacle" reworded)
 
-**File: `src/hooks/usePhysics.ts`**
-- Acoustic: 200 px/s (slower, visible pressure fronts -- sound is slow, you can watch it arrive)
-- Light: 4000 px/s (fast flash, near-instant but trackable)
-- Gravity: 800 px/s (gravitational waves propagate at c in reality, but for UX distinguishability they need to be visually slower -- a heavy ripple through spacetime, not a flash)
+### Attenuation Boundary Behavior Change
+Currently walls hard-occlude (binary block). Update `usePhysics.ts` so `isOccluded` returns an **attenuation factor** (0.0-1.0) instead of boolean, based on how many boundaries the signal crosses. This models muffling_per_hop: each boundary crossing reduces effective volume by a configurable factor (e.g., 0.6x per hop), rather than blocking entirely.
 
-## 3. Mode-Specific Wavefront Rendering in 3D
+## 2. Narrative Contextualization
 
-Currently `Wavefront3D` renders the same transparent sphere for all modes.
+### Header and Identity
+Update the header tagline from just "Constitution of Attention" to include a subtle operational identity:
 
-**File: `src/components/Canvas3D.tsx`** -- replace `Wavefront3D` component
+- Primary: **"Constitution of Attention"**
+- Secondary (small, muted): **"opTorq Estate -- Ubiquity OS"**
 
-- **Acoustic**: Expanding torus ring (like a sound pressure wave viewed from above) with orange color, thicker geometry, slight vertical oscillation. Echoes render as dashed/wireframe torus.
-- **Light**: Flat expanding disc (ring geometry) at ground level, cyan, very thin and bright, fast-fading. For directional reflections (when `wf.angle` is set), render as a narrow beam (cylinder) extending from source in the reflection direction, bright white-cyan, long and thin.
-- **Gravity**: Expanding ring that warps the grid visually -- render as a ring with vertical displacement (sine wave along radius), purple, slow and undulating. The ring subtly deforms (non-uniform scale) near mass objects to show spacetime curvature.
+This grounds the visualization as a live system viewport, not a demo.
 
-## 4. Mirror Object: Proper Specular Reflection
+### ModeExplanation.tsx Rewrite
+Replace the current descriptions with language that reflects the real governance mechanics:
 
-### Physics (usePhysics.ts)
-- `computeMirrorReflections`: Calculate the mirror's surface normal from its width/height ratio (wide = horizontal surface, tall = vertical surface). Compute proper specular reflection angle: `reflAngle = incidentAngle - 2 * dot(incident, normal) * normal`. Store the mirror's surface angle on the WorldObject type.
+- **Acoustic / Siren Channel**: "Signal propagation through container boundaries. **Attenuation boundaries** reduce effective volume by muffling_per_hop per crossing. Unacknowledged beacons escalate via warrant until addressed by the recipient or their upstream governance logic. Band: PRIMITIVE (0 dB)."
+- **Light / CogPR Channel**: "Broad signal propagation. **Observability lenses** focus attention topology; **specular surfaces** reflect beams at computed angles. CogPR lifecycle: propose, review, merge/reject via /grapple. Cross-scope attenuation weakens but never blocks. Band: COGNITIVE (-6 dB)."
+- **Gravity / Warrant Channel**: "Global phase-warping signals. **Invariant masses** shear timing via demurrage. Warrants mint on volume_threshold, harmonic_triad, or circuit_breaker. Dismissal requires stake bond. Protects serious inquiry; guards excessive influence sans trust. Band: PRIMITIVE (0 dB) -- bypasses muffling."
 
-### 3D Rendering (Canvas3D.tsx -- Object3D)
-- Mirror: Flat plane geometry with high metalness (0.95), low roughness (0.05), environment map reflection. Slight blue-white tint. Visible surface normal indicator (thin line).
+### Conductor Label
+Change "Conductor (Mogul)" tooltip to: **"Mogul -- Estate Conductor"** to match the operationTorque naming.
 
-### Wavefront Behavior
-- When a light wavefront hits a mirror, spawn a **directional beam** wavefront (using the `angle` property) -- rendered as a bright narrow cylinder/line extending from the mirror surface in the reflected direction, not an expanding sphere.
+## 3. Spherical (Omnidirectional) Wavefronts
 
-## 5. Object Material Fidelity
+Currently all wavefronts render as flat torus rings on the XZ plane. Sound, light, and gravity all propagate omnidirectionally -- expanding spherical shells in 3D.
 
-**File: `src/components/Canvas3D.tsx`** -- `Object3D` component
+### Canvas3D.tsx -- Wavefront3D Rewrite
 
-- **Permission Gate (wall)**: Box geometry with concrete-like appearance. Dark grey, rough (roughness 0.9), no metalness. Slight emissive glow on edges to show it's an active gate, not dead matter. Add thin wireframe overlay in mode color.
-- **Observability Lens**: Torus geometry (already present) but add a transparent disc inside the torus (glass effect). Low opacity (0.15), high metalness, cyan tint. When light passes through, the lens should visually brighten (emissive pulse on wavefront contact).
-- **Mirror**: Flat angled plane. High metalness (0.95), near-zero roughness. Reflective silver-white surface. Add a subtle reflection line showing the surface normal direction.
-- **Invariant Mass**: Sphere with deep purple-black core and visible gravity well -- concentric ring markers on the floor around it showing the Schwarzschild-proportional influence radius. Add animated distortion rings that pulse outward slowly. Increase the existing gravity well ring to multiple concentric rings with decreasing opacity.
+- **Acoustic**: Replace `torusGeometry` with `sphereGeometry`. Wireframe material (visible pressure shell). Orange shifting to amber as energy decays. The sphere expands in all directions from source. Echoes render as dimmer wireframe spheres with green tint.
+- **Light**: `sphereGeometry` with solid but very transparent material (opacity 0.06-0.12), bright cyan, thin shell effect (two nested spheres, inner slightly smaller). Fades fast.
+- **Gravity**: `sphereGeometry` with purple material and vertex displacement (sine ripple on the surface via `onBeforeCompile` or manual vertex manipulation in `useFrame`), creating a visually undulating 3D spacetime disturbance.
+- **Beams**: Keep as directional cylinders -- mirror reflections are correctly non-spherical.
 
-## 6. Gravity Mode Visual Distinction
+### Position Update
+Currently wavefronts sit at y=0.05-0.1 (ground level). Spherical wavefronts should center at the emitter's y position (0.15 for agents, 0.3 for conductor) so the sphere expands outward from the node in all directions.
 
-The gravity mode needs to feel heavy and warped, not just "purple acoustic."
+## 4. Time Scale System
 
-- **Wavefronts**: Render as elliptical rings (not circles) that stretch/compress based on proximity to mass objects. Use `computeTimeDilation` to distort the ring shape in the 3D renderer.
-- **Connection lines**: Already curved via bezier toward masses -- increase the visual weight and add a subtle animated dash pattern that slows near masses (simulating time dilation on the line itself).
-- **Mass gravity wells**: Add 3-4 concentric floor rings at Schwarzschild-proportional radii. Innermost ring bright purple, outer rings fading. Add slow rotation animation to the rings.
-- **Grid distortion**: Near mass objects, programmatically displace grid vertices downward (like a rubber sheet model) to show spacetime curvature. This is the signature visual for gravity mode.
+### New Hook: `src/hooks/useTimeScale.ts`
 
-## 7. Acoustic Mode Enhancements
+```text
+State:
+  timeScale: number (multiplier, default 1.0)
+  setTimeScale: (scale: number) => void
 
-- **Wavefronts**: Torus rings with visible thickness (pressure wave). Color shifts from bright orange at high energy to dull amber as energy decays.
-- **Echo wavefronts**: Dashed/wireframe torus, dimmer, with slight greenish tint to distinguish from primary.
-- **Wall interaction**: When a wavefront contacts a Permission Gate, show a brief flash/absorption effect at the contact point. The occluded portion of the wavefront should visibly attenuate (partial ring, not full circle behind walls).
+Presets: [0.01, 0.1, 0.25, 1, 4]
 
-## 8. Light Mode Beam Behavior
+Mode-aware labels:
+  Acoustic 0.1x: "Slow motion -- watch pressure fronts propagate"
+  Light 0.1x: "Slow motion -- light normalized for observation"  
+  Gravity 0.25x: "Quarter speed -- observe spacetime distortion"
 
-- **Primary emission**: Fast-expanding thin ring from Conductor
-- **Mirror reflection**: Directional beam (narrow cylinder geometry, bright white-cyan, ~0.02 radius, extends 8-10 world units in the reflected direction). This beam persists for ~1.5 seconds then fades. It should be the brightest element on screen when it fires.
-- **Lens refraction**: When wavefront passes through lens, spawn a focused convergent wavefront with higher energy and smaller radius -- the existing behavior, but visually render the focused wavefront as a brighter, tighter ring.
+Normalization note (always visible):
+  "All velocities pedagogically normalized. 
+   Acoustic: ~6x10^8 slowdown from 343 m/s
+   Light: ~10^-7 c | Gravity: ~10^-6 c"
 
-## Technical File Summary
+Resets to 1x on mode change.
+```
+
+### useSimulation.ts Integration
+- Accept `timeScaleRef: React.MutableRefObject<number>` parameter
+- In `tick`: `const scaledDt = dt * timeScaleRef.current`
+- Use `scaledDt` for all radius expansion, beam translation, energy decay
+
+### Controls.tsx -- Time Control Strip
+Add a compact row below the action buttons:
+
+```text
+[0.01x] [0.1x] [0.25x] [1x] [4x]    "1x | Acoustic: ~6x10^8 slowdown"
+```
+
+- Small toggle pills for speed presets
+- Active preset highlighted
+- Mode-specific annotation updates automatically
+- The annotation is the key UX element -- it explains WHY the speeds are what they are
+
+## 5. Attenuation Model (usePhysics.ts)
+
+Replace binary `isOccluded` with graduated attenuation:
+
+```text
+computeAttenuation(source, target, objects):
+  walls = objects.filter(wall)
+  crossings = count how many wall bounding boxes the 
+              source->target line intersects
+  return Math.pow(MUFFLING_PER_HOP, crossings)
+  // MUFFLING_PER_HOP = 0.6 (each boundary crossing 
+  // reduces signal to 60%)
+```
+
+- `calculateSignal` uses this attenuation factor instead of the binary `blocked ? 0.15 : 1` occlusion
+- This means signals pass through attenuation boundaries at reduced volume, not blocked -- matching the real governance model where muffling_per_hop attenuates across container boundaries
+
+## 6. UbiquityApp.tsx Wiring
+
+- Import and instantiate `useTimeScale(mode)`
+- Create `timeScaleRef` and pass to `useSimulation`
+- Pass `timeScale`, `setTimeScale`, and labels to `Controls`
+- Update "Add Obstacle" button label and tooltip to use new naming
+
+## File Change Summary
 
 | File | Changes |
 |---|---|
-| `src/components/Canvas3D.tsx` | Canvas container `h-full`; rewrite `Wavefront3D` for mode-specific geometry (torus/ring/beam); rewrite `Object3D` materials (mirror reflective, wall rough, lens glass, mass gravity well rings); add `BeamWavefront3D` for directional light reflections; add `GravityWellRings` sub-component for mass floor markers |
-| `src/hooks/usePhysics.ts` | Tune velocities (200/4000/800); fix mirror reflection angle calculation to use surface normal |
-| `src/types/index.ts` | Add optional `surfaceAngle` to `WorldObject` for mirror orientation; add `isBeam` flag to `Wavefront` for directional rendering |
-| `src/hooks/useSimulation.ts` | Mark mirror-spawned wavefronts with `isBeam: true`; set beam wavefronts to not expand radially but translate along angle |
-| `src/components/UbiquityApp.tsx` | Add `surfaceAngle` to mirror objects in `getInitialObjects` |
+| `src/hooks/useTimeScale.ts` | **New.** Time scale state, presets, mode-aware labels and normalization annotations |
+| `src/hooks/useSimulation.ts` | Accept timeScaleRef, multiply dt by time scale |
+| `src/hooks/usePhysics.ts` | Replace binary isOccluded with graduated computeAttenuation; rename wall references |
+| `src/components/Canvas3D.tsx` | Spherical wavefront geometry for all modes; rename "Permission Gate" to "Attenuation Boundary"; update Conductor label; center wavefronts at emitter height |
+| `src/components/Controls.tsx` | Add TimeControl strip with speed presets and normalization annotation; update obstacle tooltip |
+| `src/components/ModeExplanation.tsx` | Rewrite descriptions for governance accuracy |
+| `src/components/UbiquityApp.tsx` | Wire useTimeScale; update header with "opTorq Estate" identity; update object labels |
+| `src/types/index.ts` | No structural changes needed |
 
