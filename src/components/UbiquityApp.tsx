@@ -5,11 +5,13 @@ import { Controls } from "./Controls";
 import { ManifoldDashboard } from "./ManifoldDashboard";
 import { GradientPanel } from "./GradientPanel";
 import { ModeExplanation } from "./ModeExplanation";
+import { StoryOverlay } from "./StoryOverlay";
 import { useOrchestrator } from "../hooks/useOrchestrator";
 import { useSimulation } from "../hooks/useSimulation";
 import { useSignalEngine } from "../hooks/useSignalEngine";
 import { useGradientConfig } from "../hooks/useGradientConfig";
 import { useTimeScale } from "../hooks/useTimeScale";
+import { useStoryMode } from "../hooks/useStoryMode";
 import { CommunicationMode, Node, WorldObject, ModalPin, Effect } from "../types";
 
 export const UbiquityApp = () => {
@@ -36,6 +38,23 @@ export const UbiquityApp = () => {
     orchestrator.state.field.breachRisk
   );
   const gradientConfig = useGradientConfig();
+
+  const handleEmitSignalKind = useCallback((kind: 'BEACON' | 'LESSON' | 'TENSION') => {
+    const orch = nodes.find(n => n.type === 'orchestrator');
+    if (!orch) return;
+    simulation.emitWavefront(orch.x, orch.y);
+    signalEngine.emitSignal(kind);
+  }, [nodes, simulation, signalEngine]);
+
+  const broadcastRef = useRef(() => {});
+  const dropPinRef = useRef(() => {});
+
+  const storyMode = useStoryMode({
+    onBroadcast: () => broadcastRef.current(),
+    onDropPin: () => dropPinRef.current(),
+    onSetMode: setMode,
+    onEmitSignalKind: handleEmitSignalKind,
+  });
 
   const economicBridge = useMemo(
     () => orchestrator.getEconomicBridge(signalEngine.warrants),
@@ -297,6 +316,10 @@ export const UbiquityApp = () => {
     initializeScene();
   }, [initializeScene]);
 
+  // Wire story callbacks to real handlers
+  broadcastRef.current = handleBroadcast;
+  dropPinRef.current = handleDropPin;
+
   const activeWarrantCount = signalEngine.warrants.filter(w => w.status === 'active').length;
 
   return (
@@ -317,6 +340,14 @@ export const UbiquityApp = () => {
         </div>
 
         <div className="flex items-center gap-1.5 order-2 sm:order-3">
+          <button
+            onClick={storyMode.isPlaying ? storyMode.stopStory : storyMode.startStory}
+            className={`drawer-toggle-btn ${storyMode.isPlaying ? 'active' : ''}`}
+            title="Story Mode"
+          >
+            <span className="text-sm">🎬</span>
+            <span className="hidden md:inline text-[10px]">Story</span>
+          </button>
           <button
             onClick={() => setIsGradientOpen(prev => !prev)}
             className={`drawer-toggle-btn ${isGradientOpen ? 'active' : ''}`}
@@ -356,7 +387,19 @@ export const UbiquityApp = () => {
           onEnterCockpit={setCockpitNodeId}
           onExitCockpit={() => setCockpitNodeId(null)}
           emittingAgentIds={emittingAgentIds}
+          storyCamera={storyMode.storyCamera}
+          storyHighlightId={storyMode.highlightId}
         />
+        {storyMode.isPlaying && (
+          <StoryOverlay
+            currentAct={storyMode.currentAct}
+            totalActs={storyMode.totalActs}
+            actProgress={storyMode.actProgress}
+            narration={storyMode.narration}
+            onSkip={storyMode.skipAct}
+            onExit={storyMode.stopStory}
+          />
+        )}
       </div>
 
       {/* Controls + Explanation */}
