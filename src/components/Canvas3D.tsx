@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Html, Stars, Line } from "@react-three/drei";
 import * as THREE from "three";
 import { CommunicationMode, Node, WorldObject, ModalPin, Effect, Wavefront, AgentSignalState } from "../types";
+import { StoryCamera } from "../hooks/useStoryMode";
 
 // ─── Constants ───────────────────────────────────────────────────────
 const SCALE = 0.02; // 1px → 0.02 world units → 800px = 16 units
@@ -37,6 +38,8 @@ interface Canvas3DProps {
   onEnterCockpit: (nodeId: string) => void;
   onExitCockpit: () => void;
   emittingAgentIds?: string[];
+  storyCamera?: StoryCamera | null;
+  storyHighlightId?: string | null;
 }
 
 // ─── 3D Node (sphere + label) ────────────────────────────────────────
@@ -700,10 +703,55 @@ const CockpitCamera = ({ targetNode, onExit }: { targetNode: Node; onExit: () =>
   return null;
 };
 
+// ─── Story Camera Controller ─────────────────────────────────────────
+const StoryCameraController = ({ storyCamera }: { storyCamera: StoryCamera }) => {
+  const { camera } = useThree();
+  const posTarget = useRef(new THREE.Vector3(...storyCamera.position));
+  const lookTarget = useRef(new THREE.Vector3(...storyCamera.target));
+
+  useEffect(() => {
+    posTarget.current.set(...storyCamera.position);
+    lookTarget.current.set(...storyCamera.target);
+  }, [storyCamera]);
+
+  useFrame(() => {
+    camera.position.lerp(posTarget.current, 0.04);
+    const look = new THREE.Vector3().copy(camera.position);
+    look.lerp(lookTarget.current, 1); // target is absolute
+    camera.lookAt(lookTarget.current.x, lookTarget.current.y, lookTarget.current.z);
+  });
+
+  return null;
+};
+
+// ─── Story Highlight Ring ────────────────────────────────────────────
+const StoryHighlight = ({ obj }: { obj: WorldObject }) => {
+  const ringRef = useRef<THREE.Mesh>(null);
+  const px = toWorld(obj.x + obj.width / 2 - CENTER_X);
+  const pz = toWorld(obj.y + obj.height / 2 - CENTER_Y);
+
+  useFrame(() => {
+    if (!ringRef.current) return;
+    const t = Date.now() * 0.003;
+    const scale = 1 + Math.sin(t) * 0.15;
+    ringRef.current.scale.set(scale, scale, scale);
+    const mat = ringRef.current.material as THREE.MeshBasicMaterial;
+    mat.opacity = 0.4 + Math.sin(t * 1.5) * 0.2;
+  });
+
+  return (
+    <mesh ref={ringRef} position={[px, 0.35, pz]} rotation={[-Math.PI / 2, 0, 0]}>
+      <ringGeometry args={[0.5, 0.6, 32]} />
+      <meshBasicMaterial color="#00ffcc" transparent opacity={0.5} side={THREE.DoubleSide} depthWrite={false} />
+    </mesh>
+  );
+};
+
 // ─── Scene (inner Canvas content) ────────────────────────────────────
 const Scene = ({
   mode, nodes, objects, modalPins, wavefronts, agentSignals,
-  cockpitNodeId, onEnterCockpit, onExitCockpit, onCanvasClick, emittingAgentIds
+  cockpitNodeId, onEnterCockpit, onExitCockpit, onCanvasClick, emittingAgentIds,
+  storyCamera, storyHighlightId
 }: Omit<Canvas3DProps, 'effects'>) => {
   const orchestratorNode = useMemo(() => nodes.find(n => n.type === 'orchestrator'), [nodes]);
   const agents = useMemo(() => nodes.filter(n => n.type === 'agent'), [nodes]);
@@ -723,7 +771,9 @@ const Scene = ({
       <Floor mode={mode} />
 
       {/* Camera controls */}
-      {cockpitNode ? (
+      {storyCamera ? (
+        <StoryCameraController storyCamera={storyCamera} />
+      ) : cockpitNode ? (
         <CockpitCamera targetNode={cockpitNode} onExit={onExitCockpit} />
       ) : (
         <OrbitControls
@@ -787,6 +837,12 @@ const Scene = ({
       {modalPins.map(pin => (
         <Pin3D key={pin.id} pin={pin} />
       ))}
+
+      {/* Story highlight */}
+      {storyHighlightId && (() => {
+        const hlObj = objects.find(o => o.id === storyHighlightId);
+        return hlObj ? <StoryHighlight obj={hlObj} /> : null;
+      })()}
     </>
   );
 };
