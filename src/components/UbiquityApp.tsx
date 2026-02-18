@@ -1,12 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { ModeSelector } from "./ModeSelector";
 import { Canvas3D } from "./Canvas3D";
 import { Controls } from "./Controls";
-import { HUD } from "./HUD";
+import { ManifoldDashboard } from "./ManifoldDashboard";
+import { GradientPanel } from "./GradientPanel";
 import { ModeExplanation } from "./ModeExplanation";
 import { useOrchestrator } from "../hooks/useOrchestrator";
 import { useSimulation } from "../hooks/useSimulation";
 import { useSignalEngine } from "../hooks/useSignalEngine";
+import { useGradientConfig } from "../hooks/useGradientConfig";
 import { CommunicationMode, Node, WorldObject, ModalPin, Effect } from "../types";
 
 export const UbiquityApp = () => {
@@ -25,6 +27,12 @@ export const UbiquityApp = () => {
     orchestrator.state.field.demurrageRate,
     orchestrator.state.field.breachRisk
   );
+  const gradientConfig = useGradientConfig();
+
+  const economicBridge = useMemo(
+    () => orchestrator.getEconomicBridge(signalEngine.warrants),
+    [orchestrator, signalEngine.warrants]
+  );
 
   // Continuous agent emissions
   const autoEmitRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -34,23 +42,20 @@ export const UbiquityApp = () => {
       setNodes(prev => {
         const agents = prev.filter(n => n.type === 'agent');
         if (agents.length === 0) return prev;
-        // Pick 1-3 random agents to emit
         const count = 1 + Math.floor(Math.random() * 2);
         const emittedIds: string[] = [];
         for (let i = 0; i < count; i++) {
           const agent = agents[Math.floor(Math.random() * agents.length)];
           simulation.emitWavefront(agent.x, agent.y);
-          // In acoustic mode, bias toward TENSION (siren) signals
           const kind = mode === 'acoustic' && Math.random() < 0.6 ? 'TENSION' as const : undefined;
           signalEngine.emitSignal(kind);
           emittedIds.push(agent.id);
         }
-        // Track emitting agents for visual flash
         setEmittingAgentIds(emittedIds);
         setTimeout(() => setEmittingAgentIds([]), 800);
         return prev;
       });
-    }, 2000 + Math.random() * 2000); // every 2-4 seconds
+    }, 2000 + Math.random() * 2000);
 
     return () => {
       if (autoEmitRef.current) clearInterval(autoEmitRef.current);
@@ -164,16 +169,10 @@ export const UbiquityApp = () => {
     const orch = nodes.find(n => n.type === 'orchestrator');
     if (!orch) return;
 
-    // Emit wavefront into simulation
     simulation.emitWavefront(orch.x, orch.y);
-
-    // Emit signal into CGG engine
     signalEngine.emitSignal();
-
-    // Tick orchestrator state
     orchestrator.tick();
 
-    // Visual effect for broadcast origin
     const effectType = mode === 'acoustic' ? 'acoustic-wave' : mode === 'light' ? 'ring' : 'gravity-wave';
     const newEffect: Effect = {
       id: `effect-${Date.now()}`,
@@ -188,7 +187,6 @@ export const UbiquityApp = () => {
       setEffects(prev => prev.filter(e => e.id !== newEffect.id));
     }, newEffect.duration || 2000);
 
-    // Light rays
     if (mode === 'light') {
       for (let i = 0; i < 18; i++) {
         const angle = (i / 18) * Math.PI * 2;
@@ -208,7 +206,6 @@ export const UbiquityApp = () => {
       }
     }
 
-    // Triad resonance effect if triads detected
     if (signalEngine.triads.length > 0) {
       const triadEffect: Effect = {
         id: `triad-${Date.now()}`,
@@ -298,7 +295,7 @@ export const UbiquityApp = () => {
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold bg-clip-text text-transparent" style={{ backgroundImage: 'var(--gradient-neon)' }}>
             Signal Manifold Monitor
           </h1>
           <p className="text-sm text-secondary-foreground max-w-4xl mx-auto">
@@ -330,12 +327,15 @@ export const UbiquityApp = () => {
           onAddObject={handleAddObject}
           onDropPin={handleDropPin}
           onClear={handleClear}
+          warrants={signalEngine.warrants}
+          onAcknowledgeWarrant={signalEngine.acknowledgeWarrant}
+          onDismissWarrant={signalEngine.dismissWarrant}
         />
 
         <ModeExplanation mode={mode} />
       </div>
 
-      <HUD
+      <ManifoldDashboard
         mode={mode}
         orchestrator={orchestrator}
         wavefronts={simulation.wavefronts}
@@ -343,6 +343,21 @@ export const UbiquityApp = () => {
         signals={signalEngine.signals}
         warrants={signalEngine.warrants}
         triadCount={signalEngine.triadCount}
+        triads={signalEngine.triads}
+        census={signalEngine.census}
+        warrantLifecycle={signalEngine.warrantLifecycle}
+        phaseTier={orchestrator.phaseTier}
+        breachFlags={orchestrator.breachFlags}
+        economicBridge={economicBridge}
+        onAcknowledgeWarrant={signalEngine.acknowledgeWarrant}
+        onDismissWarrant={signalEngine.dismissWarrant}
+      />
+
+      <GradientPanel
+        levers={gradientConfig.levers}
+        labels={gradientConfig.labels}
+        onSetLever={gradientConfig.setLever}
+        onApplyPreset={gradientConfig.applyPreset}
       />
     </div>
   );

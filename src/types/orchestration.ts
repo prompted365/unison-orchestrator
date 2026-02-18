@@ -17,6 +17,7 @@ export interface Signal {
   escalation: EscalationStatus;
   sourceActorId: string;
   createdAt: number;
+  subsystem?: string;
 }
 
 export type WarrantMintingCondition = 'volume_threshold' | 'harmonic_triad' | 'circuit_breaker';
@@ -44,10 +45,38 @@ export interface HarmonicTriad {
 }
 
 export type TransitionPhase = 0 | 1 | 2 | 3 | 4;
+export type PhaseTier = 'SimOnly' | 'PaperTrading' | 'ShadowLive' | 'LiveRestricted' | 'LiveFull';
+
+export interface BreachFlags {
+  frozen: boolean;
+  reserve_breach: boolean;
+  rate_band_breach: boolean;
+  mint_halted: boolean;
+}
+
+export interface EconomicBridgeState {
+  locked_stake: number;
+  penalty_accrued: number;
+  disbursement_safe: boolean;
+  demurrage_tier: string;
+}
 
 export interface BarometerState {
   phase: TransitionPhase;
   demurrageRate: number;
   breachFlags: string[];
   activeSignalsCount: number;
+}
+
+export interface SignalCensus {
+  byKind: Record<SignalKind, number>;
+  byBand: Record<SignalBand, number>;
+  loudest: { kind: SignalKind; volume: number; subsystem?: string } | null;
+}
+
+export interface WarrantLifecycle {
+  active: number;
+  acknowledged: number;
+  dismissed: number;
+  expired: number;
 }

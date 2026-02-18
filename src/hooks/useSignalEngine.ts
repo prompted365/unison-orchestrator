@@ -1,11 +1,14 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { CommunicationMode } from "../types";
-import { Signal, Warrant, HarmonicTriad, SignalKind, SignalBand } from "../types/orchestration";
+import {
+  Signal, Warrant, HarmonicTriad, SignalKind, SignalBand,
+  BreachFlags, SignalCensus, WarrantLifecycle
+} from "../types/orchestration";
 
 let idCounter = 0;
 const nextId = (prefix: string) => `${prefix}-${idCounter++}`;
 
-const SIGNAL_TTL_S = 20; // seconds in sim-time
+const SIGNAL_TTL_S = 20;
 const WARRANT_TTL_S = 30;
 const TRIAD_WINDOW_S = 5;
 const VOLUME_THRESHOLD = 0.8;
@@ -16,11 +19,29 @@ const MODE_BAND: Record<CommunicationMode, SignalBand> = {
   gravity: 'PRIMITIVE'
 };
 
+const SUBSYSTEMS = ['ghost_chorus', 'economy_whisper', 'drift_tracker', 'ecotone_gate', 'epitaph_extractor'];
+
+// Band budget dB multipliers (linear)
+const BAND_MULTIPLIER: Record<SignalBand, number> = {
+  PRIMITIVE: 1.0,       // 0 dB
+  COGNITIVE: 0.5,       // -6 dB
+  SOCIAL: 0.25,         // -12 dB
+  PRESTIGE: 0.0,        // auto-muted
+};
+
+export const deriveBreachFlags = (phase: number): BreachFlags => ({
+  rate_band_breach: phase >= 1,
+  reserve_breach: phase >= 2,
+  mint_halted: phase >= 3,
+  frozen: phase >= 4,
+});
+
 export const useSignalEngine = (mode: CommunicationMode, demurrageRate: number, breachRisk: number) => {
   const [signals, setSignals] = useState<Signal[]>([]);
   const [warrants, setWarrants] = useState<Warrant[]>([]);
   const [triads, setTriads] = useState<HarmonicTriad[]>([]);
   const [triadCount, setTriadCount] = useState(0);
+  const [warrantLifecycleTotal, setWarrantLifecycleTotal] = useState({ dismissed: 0, expired: 0 });
 
   const lastTickRef = useRef(performance.now());
   const modeRef = useRef(mode);
@@ -28,7 +49,35 @@ export const useSignalEngine = (mode: CommunicationMode, demurrageRate: number, 
   const warrantsRef = useRef<Warrant[]>([]);
   warrantsRef.current = warrants;
 
-  // Tick the signal engine - called from simulation loop or interval
+  // Signal census
+  const census: SignalCensus = useMemo(() => {
+    const byKind: Record<SignalKind, number> = { BEACON: 0, LESSON: 0, OPPORTUNITY: 0, TENSION: 0 };
+    const byBand: Record<SignalBand, number> = { PRIMITIVE: 0, COGNITIVE: 0, SOCIAL: 0, PRESTIGE: 0 };
+    let loudest: SignalCensus['loudest'] = null;
+
+    signals.forEach(s => {
+      byKind[s.kind]++;
+      byBand[s.band]++;
+      if (!loudest || s.volume > loudest.volume) {
+        loudest = { kind: s.kind, volume: s.volume, subsystem: s.subsystem };
+      }
+    });
+    return { byKind, byBand, loudest };
+  }, [signals]);
+
+  // Warrant lifecycle
+  const warrantLifecycle: WarrantLifecycle = useMemo(() => {
+    const active = warrants.filter(w => w.status === 'active').length;
+    const acknowledged = warrants.filter(w => w.status === 'acknowledged').length;
+    return {
+      active,
+      acknowledged,
+      dismissed: warrantLifecycleTotal.dismissed,
+      expired: warrantLifecycleTotal.expired,
+    };
+  }, [warrants, warrantLifecycleTotal]);
+
+  // Tick
   useEffect(() => {
     const interval = setInterval(() => {
       const now = performance.now();
@@ -42,7 +91,10 @@ export const useSignalEngine = (mode: CommunicationMode, demurrageRate: number, 
 
           let vol = sig.volume + sig.volumeRate * dt;
 
-          // Warrant amplification: active warrants boost volume
+          // Band budget enforcement
+          vol *= BAND_MULTIPLIER[sig.band];
+
+          // Warrant amplification
           const matchingWarrants = warrantsRef.current.filter(
             w => w.status === 'active' && w.sourceSignalIds.includes(sig.id)
           );
@@ -50,37 +102,43 @@ export const useSignalEngine = (mode: CommunicationMode, demurrageRate: number, 
           vol += warrantBoost * dt;
 
           vol = Math.min(vol, sig.maxVolume);
-          // Demurrage decay
           vol -= demurrageRate * vol * dt * 1000;
           vol = Math.max(0, vol);
 
           return { ...sig, volume: vol };
         });
 
-        // Remove expired
         updated = updated.filter(s => s.volume > 0.001 && s.escalation !== 'EXPIRED');
         return updated;
       });
 
       // Warrant expiry
-      setWarrants(prev =>
-        prev.filter(w => {
+      setWarrants(prev => {
+        let expiredCount = 0;
+        const kept = prev.filter(w => {
           const age = (now - w.createdAt) / 1000;
-          return age < WARRANT_TTL_S && w.status === 'active';
-        })
-      );
-    }, 100); // 10Hz tick
+          if (age >= WARRANT_TTL_S || w.status === 'dismissed') {
+            if (w.status !== 'dismissed') expiredCount++;
+            return false;
+          }
+          return true;
+        });
+        if (expiredCount > 0) {
+          setWarrantLifecycleTotal(p => ({ ...p, expired: p.expired + expiredCount }));
+        }
+        return kept;
+      });
+    }, 100);
 
     return () => clearInterval(interval);
   }, [demurrageRate]);
 
-  // Check for warrant minting conditions
+  // Warrant minting checks
   useEffect(() => {
     const interval = setInterval(() => {
       const now = performance.now();
 
       setSignals(prev => {
-        // Volume threshold check
         prev.forEach(sig => {
           if (sig.volume > VOLUME_THRESHOLD && sig.escalation === 'ACTIVE') {
             mintWarrant([sig.id], 'volume_threshold', sig.band, sig.volume);
@@ -115,7 +173,6 @@ export const useSignalEngine = (mode: CommunicationMode, demurrageRate: number, 
             }
           }
         }
-
         return prev;
       });
 
@@ -154,8 +211,8 @@ export const useSignalEngine = (mode: CommunicationMode, demurrageRate: number, 
     const kinds: SignalKind[] = ['BEACON', 'LESSON', 'OPPORTUNITY', 'TENSION'];
     const selectedKind = kind || kinds[Math.floor(Math.random() * kinds.length)];
     const band = MODE_BAND[modeRef.current];
+    const subsystem = SUBSYSTEMS[Math.floor(Math.random() * SUBSYSTEMS.length)];
 
-    // TENSION signals (sirens) escalate faster
     const isTension = selectedKind === 'TENSION';
     const sig: Signal = {
       id: nextId('signal'),
@@ -164,11 +221,12 @@ export const useSignalEngine = (mode: CommunicationMode, demurrageRate: number, 
       volume: 0.1 + Math.random() * 0.3,
       volumeRate: isTension ? (0.04 + Math.random() * 0.04) : (0.02 + Math.random() * 0.04),
       maxVolume: 0.7 + Math.random() * 0.3,
-      ttlHours: SIGNAL_TTL_S / 3600, // scaled
+      ttlHours: SIGNAL_TTL_S / 3600,
       hearingTargets: [],
       escalation: 'ACTIVE',
       sourceActorId: 'orchestrator',
-      createdAt: performance.now()
+      createdAt: performance.now(),
+      subsystem,
     };
     setSignals(prev => [...prev, sig]);
   }, []);
@@ -179,6 +237,7 @@ export const useSignalEngine = (mode: CommunicationMode, demurrageRate: number, 
 
   const dismissWarrant = useCallback((id: string) => {
     setWarrants(prev => prev.map(w => w.id === id ? { ...w, status: 'dismissed' as const } : w));
+    setWarrantLifecycleTotal(p => ({ ...p, dismissed: p.dismissed + 1 }));
   }, []);
 
   // Reset on mode change
@@ -186,6 +245,7 @@ export const useSignalEngine = (mode: CommunicationMode, demurrageRate: number, 
     setSignals([]);
     setWarrants([]);
     setTriads([]);
+    setWarrantLifecycleTotal({ dismissed: 0, expired: 0 });
   }, [mode]);
 
   return {
@@ -193,6 +253,8 @@ export const useSignalEngine = (mode: CommunicationMode, demurrageRate: number, 
     warrants,
     triads,
     triadCount,
+    census,
+    warrantLifecycle,
     emitSignal,
     acknowledgeWarrant,
     dismissWarrant

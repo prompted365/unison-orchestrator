@@ -1,5 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { CommunicationMode, WorldObject, OrchestratorState } from "../types";
+import { BreachFlags, EconomicBridgeState, PhaseTier } from "../types/orchestration";
+import { deriveBreachFlags } from "./useSignalEngine";
+
+const PHASE_TIERS: PhaseTier[] = ['SimOnly', 'PaperTrading', 'ShadowLive', 'LiveRestricted', 'LiveFull'];
 
 const TASK_REQUIREMENTS = {
   'Siren Tick': ['ghost_chorus', 'ecotone_gate'],
@@ -30,6 +34,17 @@ export const useOrchestrator = (mode: CommunicationMode, objects: WorldObject[])
   });
 
   const [taskIndex, setTaskIndex] = useState(0);
+  const [penaltyAccrued, setPenaltyAccrued] = useState(0);
+
+  const phaseTier: PhaseTier = useMemo(
+    () => PHASE_TIERS[state.field.barometerPhase] || 'SimOnly',
+    [state.field.barometerPhase]
+  );
+
+  const breachFlags: BreachFlags = useMemo(
+    () => deriveBreachFlags(state.field.barometerPhase),
+    [state.field.barometerPhase]
+  );
 
   const softPrereq = useCallback((task: string, capabilities: string[]) => {
     const needed = TASK_REQUIREMENTS[task as keyof typeof TASK_REQUIREMENTS] || ['ghost_chorus'];
@@ -72,11 +87,28 @@ export const useOrchestrator = (mode: CommunicationMode, objects: WorldObject[])
     return task;
   }, [taskIndex]);
 
+  // Economic bridge derived from warrants passed from outside
+  const getEconomicBridge = useCallback((warrants: { stakeBond: number; status: string }[]): EconomicBridgeState => {
+    const lockedStake = warrants
+      .filter(w => w.status === 'active')
+      .reduce((sum, w) => sum + w.stakeBond, 0);
+    const demurrageTier = PHASE_TIERS[state.field.barometerPhase] || 'SimOnly';
+    return {
+      locked_stake: Number(lockedStake.toFixed(3)),
+      penalty_accrued: Number(penaltyAccrued.toFixed(3)),
+      disbursement_safe: state.field.barometerPhase < 3 && lockedStake < 5,
+      demurrage_tier: demurrageTier,
+    };
+  }, [state.field.barometerPhase, penaltyAccrued]);
+
   return {
     state,
     tick,
     score,
     softPrereq,
-    getNextTask
+    getNextTask,
+    phaseTier,
+    breachFlags,
+    getEconomicBridge,
   };
 };
