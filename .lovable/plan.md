@@ -1,134 +1,165 @@
 
 
-# Omnidirectional Wavefronts, Time Control, and Narrative Coherence
+# Cinematic Story Mode: "First Light" Guided Tour
 
-This plan combines the previously approved physics changes (spherical wavefronts + time scale) with the narrative corrections you've described: renaming "Permission Gates" to reflect the actual governance model, and contextualizing operationTorque as a live working system.
+## Overview
 
-## 1. Rename Objects to Match the Governance Model
+Add a **Story Mode** that plays a scripted cinematic sequence through the 3D scene. The camera flies between nodes while narration cards explain what's happening. The system demonstrates key CGG v3 mechanics in order: broadcast, attenuation, warrant escalation, epitaph origin, and the "refusal event" -- all choreographed with actual simulation calls so the viewer watches real wavefronts propagate, real signals attenuate, and real warrants mint.
 
-"Permission Gate" implies a binary access control. The actual model is a **hearing threshold boundary** -- a surface where muffling_per_hop attenuates signal, frequency filters apply, and the pub/sub matrix determines who hears what. Objects should be renamed throughout:
+The user triggers it from a "Story" button in the header. It can be exited at any time.
 
-| Current Name | New Name | Rationale |
-|---|---|---|
-| Permission Gate (wall) | Attenuation Boundary | Models muffling_per_hop across container edges. Doesn't block -- attenuates. |
-| Observability Lens | Observability Lens | Already accurate -- focuses attention, refracts signal topology. |
-| Mirror | Specular Surface | Already accurate -- reflects light-band signals at computed angles. |
-| Invariant Mass | Invariant Mass | Already accurate -- warps phase timing via gravitational metaphor. |
-
-**Files affected:** `Canvas3D.tsx` (Object3D labels, tooltips), `ModeExplanation.tsx` (descriptions), `Controls.tsx` (tooltip text), `UbiquityApp.tsx` (tooltip text for "Add Obstacle" reworded)
-
-### Attenuation Boundary Behavior Change
-Currently walls hard-occlude (binary block). Update `usePhysics.ts` so `isOccluded` returns an **attenuation factor** (0.0-1.0) instead of boolean, based on how many boundaries the signal crosses. This models muffling_per_hop: each boundary crossing reduces effective volume by a configurable factor (e.g., 0.6x per hop), rather than blocking entirely.
-
-## 2. Narrative Contextualization
-
-### Header and Identity
-Update the header tagline from just "Constitution of Attention" to include a subtle operational identity:
-
-- Primary: **"Constitution of Attention"**
-- Secondary (small, muted): **"opTorq Estate -- Ubiquity OS"**
-
-This grounds the visualization as a live system viewport, not a demo.
-
-### ModeExplanation.tsx Rewrite
-Replace the current descriptions with language that reflects the real governance mechanics:
-
-- **Acoustic / Siren Channel**: "Signal propagation through container boundaries. **Attenuation boundaries** reduce effective volume by muffling_per_hop per crossing. Unacknowledged beacons escalate via warrant until addressed by the recipient or their upstream governance logic. Band: PRIMITIVE (0 dB)."
-- **Light / CogPR Channel**: "Broad signal propagation. **Observability lenses** focus attention topology; **specular surfaces** reflect beams at computed angles. CogPR lifecycle: propose, review, merge/reject via /grapple. Cross-scope attenuation weakens but never blocks. Band: COGNITIVE (-6 dB)."
-- **Gravity / Warrant Channel**: "Global phase-warping signals. **Invariant masses** shear timing via demurrage. Warrants mint on volume_threshold, harmonic_triad, or circuit_breaker. Dismissal requires stake bond. Protects serious inquiry; guards excessive influence sans trust. Band: PRIMITIVE (0 dB) -- bypasses muffling."
-
-### Conductor Label
-Change "Conductor (Mogul)" tooltip to: **"Mogul -- Estate Conductor"** to match the operationTorque naming.
-
-## 3. Spherical (Omnidirectional) Wavefronts
-
-Currently all wavefronts render as flat torus rings on the XZ plane. Sound, light, and gravity all propagate omnidirectionally -- expanding spherical shells in 3D.
-
-### Canvas3D.tsx -- Wavefront3D Rewrite
-
-- **Acoustic**: Replace `torusGeometry` with `sphereGeometry`. Wireframe material (visible pressure shell). Orange shifting to amber as energy decays. The sphere expands in all directions from source. Echoes render as dimmer wireframe spheres with green tint.
-- **Light**: `sphereGeometry` with solid but very transparent material (opacity 0.06-0.12), bright cyan, thin shell effect (two nested spheres, inner slightly smaller). Fades fast.
-- **Gravity**: `sphereGeometry` with purple material and vertex displacement (sine ripple on the surface via `onBeforeCompile` or manual vertex manipulation in `useFrame`), creating a visually undulating 3D spacetime disturbance.
-- **Beams**: Keep as directional cylinders -- mirror reflections are correctly non-spherical.
-
-### Position Update
-Currently wavefronts sit at y=0.05-0.1 (ground level). Spherical wavefronts should center at the emitter's y position (0.15 for agents, 0.3 for conductor) so the sphere expands outward from the node in all directions.
-
-## 4. Time Scale System
-
-### New Hook: `src/hooks/useTimeScale.ts`
+## Story Sequence (7 Acts)
 
 ```text
-State:
-  timeScale: number (multiplier, default 1.0)
-  setTimeScale: (scale: number) => void
+Act 1: "The Estate" (5s)
+  Camera: High orbit overview, slow pan
+  Narration: "This is opTorq Estate. Mogul, the Estate 
+  Conductor, governs a manifold of agents across three 
+  signal channels. Every signal obeys physics."
+  Action: None -- just the ambient scene
 
-Presets: [0.01, 0.1, 0.25, 1, 4]
+Act 2: "The Broadcast" (6s)
+  Camera: Zoom to Conductor (Mogul)
+  Narration: "Mogul emits an acoustic beacon. Sound 
+  propagates omnidirectionally -- a spherical pressure 
+  wave expanding at ~343 m/s (normalized here to 200 px/s 
+  for observation)."
+  Action: Trigger handleBroadcast() in acoustic mode. 
+  Camera watches the wavefront expand outward.
 
-Mode-aware labels:
-  Acoustic 0.1x: "Slow motion -- watch pressure fronts propagate"
-  Light 0.1x: "Slow motion -- light normalized for observation"  
-  Gravity 0.25x: "Quarter speed -- observe spacetime distortion"
+Act 3: "Attenuation, Not Permission" (7s)
+  Camera: Pan to nearest Attenuation Boundary, then to 
+  an agent behind it
+  Narration: "This boundary doesn't block signals -- it 
+  attenuates them. Each crossing reduces effective volume 
+  by muffling_per_hop. Agent Ghost Chorus #1 hears the 
+  beacon at reduced SNR. The signal arrived -- just quieter."
+  Action: Highlight the boundary object (emissive pulse). 
+  Show the agent's SNR updating to a 'weak' value.
 
-Normalization note (always visible):
-  "All velocities pedagogically normalized. 
-   Acoustic: ~6x10^8 slowdown from 343 m/s
-   Light: ~10^-7 c | Gravity: ~10^-6 c"
+Act 4: "Warrant Escalation" (8s)
+  Camera: Return to Conductor, then sweep across agents
+  Narration: "An unacknowledged beacon escalates. Volume 
+  accrues. When it crosses the volume threshold (0.8), a 
+  Warrant mints -- an obligation token requiring stake bond 
+  to dismiss. As the warrant strengthens, even distant 
+  agents begin to hear."
+  Action: Emit multiple rapid signals to push volume past 
+  threshold. Warrant mints visibly. Show agents lighting 
+  up progressively as effective volume rises.
 
-Resets to 1x on mode change.
+Act 5: "The Harmonic Triad" (7s)
+  Camera: Orbit showing three signal types converging
+  Narration: "When BEACON + LESSON + TENSION signals 
+  co-exist within the triad window, a harmonic warrant 
+  mints automatically. This is emergent governance -- not 
+  a rule someone wrote, but a resonance the system 
+  detected."
+  Action: Emit the three signal kinds in sequence. Show 
+  triad detection and warrant minting.
+
+Act 6: "The Epitaph" (7s)
+  Camera: Zoom to the Epitaph Extractor cluster
+  Narration: "When a signal completes its lifecycle -- 
+  acknowledged, acted upon, resolved -- the Epitaph 
+  Extractor compresses the outcome into a durable 
+  disposition. This is how the estate learns. Not by 
+  storing everything, but by remembering what mattered."
+  Action: Drop an epitaph pin near the cluster. Show it 
+  appear and begin its TTL countdown.
+
+Act 7: "The Refusal" (8s)
+  Camera: Pull back to full estate view
+  Narration: "On 2026-02-18, this system demonstrated 
+  governance by refusing to promote a valid insight to 
+  global scope -- because blast radius exceeded evidence. 
+  Accuracy alone doesn't earn global law. Time, repetition, 
+  and institutional review do. This is the Constitution of 
+  Attention."
+  Action: Show the full estate running, all agents 
+  communicating, warrants active, the manifold alive.
 ```
 
-### useSimulation.ts Integration
-- Accept `timeScaleRef: React.MutableRefObject<number>` parameter
-- In `tick`: `const scaledDt = dt * timeScaleRef.current`
-- Use `scaledDt` for all radius expansion, beam translation, energy decay
+## Technical Implementation
 
-### Controls.tsx -- Time Control Strip
-Add a compact row below the action buttons:
+### New file: `src/hooks/useStoryMode.ts`
+
+State machine managing the cinematic sequence:
+
+- `isPlaying: boolean` -- whether story mode is active
+- `currentAct: number` -- which act (0-6)
+- `actProgress: number` -- 0.0-1.0 progress within current act
+- `startStory() / stopStory()` -- controls
+- `storyCamera: { position, target, fov }` -- computed camera state for current act progress, interpolated via cubic bezier easing
+- `narration: { title, body } | null` -- current narration card text
+- `storyActions: StoryAction[]` -- queue of simulation actions to fire at specific act times (e.g., "at act 2, progress 0.3, call onBroadcast()")
+
+The hook uses `requestAnimationFrame` internally for smooth act progression. Each act has a duration in seconds.
+
+### New file: `src/components/StoryOverlay.tsx`
+
+Overlay UI rendered on top of the Canvas when story mode is active:
+
+- **Narration card**: Bottom-center, semi-transparent dark card with title + body text. Fades in/out between acts. Monospace font, matches existing UI aesthetic.
+- **Progress bar**: Thin line at the very top showing overall story progress (act dots).
+- **Skip button**: "Skip" pill in top-right corner.
+- **Exit button**: "Exit Story" in top-right.
+- **Act indicator**: Small "Act 2/7" label near progress bar.
+
+### Canvas3D.tsx Changes
+
+- Accept new optional prop: `storyCamera: { position: [x,y,z], target: [x,y,z], fov: number } | null`
+- When `storyCamera` is provided, disable OrbitControls and instead use a `StoryCameraController` component that smoothly lerps the camera to the story position/target each frame using `useFrame`
+- The existing CockpitCamera is mutually exclusive with story camera
+
+### UbiquityApp.tsx Changes
+
+- Import and wire `useStoryMode`
+- Pass story action callbacks (handleBroadcast, handleDropPin, setMode, etc.) to the hook so it can trigger simulation events at scripted times
+- Add "Story" button to the header
+- Pass `storyCamera` to Canvas3D
+- Render `StoryOverlay` when story is playing
+
+### Camera Keyframes (defined in useStoryMode)
+
+Each act defines a camera path as `[startPos, startTarget]` to `[endPos, endTarget]` with easing:
+
+| Act | Start Position | End Position | Notes |
+|---|---|---|---|
+| 1 | [0, 12, 14] | [3, 8, 10] | High orbit, slow drift |
+| 2 | [3, 4, 4] | [0, 2, 2] | Zoom into Conductor |
+| 3 | [-2, 3, 1] | [-4, 2, -1] | Pan to boundary + agent behind it |
+| 4 | [0, 3, 3] | [2, 5, 6] | Sweep across agents |
+| 5 | [0, 6, 0] | [0, 6, 0] | Orbit (rotate target around center) |
+| 6 | [3, 2, -2] | [3, 1.5, -2] | Close-up on Epitaph cluster |
+| 7 | [0, 10, 12] | [0, 8, 10] | Pull back to full view |
+
+Camera interpolation uses `THREE.Vector3.lerp` with eased progress (cubic ease-in-out).
+
+### Story Action Triggers
+
+The hook maintains a queue of timed actions. When `actProgress` crosses a threshold, it fires the callback:
 
 ```text
-[0.01x] [0.1x] [0.25x] [1x] [4x]    "1x | Acoustic: ~6x10^8 slowdown"
+Act 2, progress 0.3: setMode('acoustic'), then handleBroadcast()
+Act 3, progress 0.2: highlight boundary object (set a storyHighlightId state)
+Act 4, progress 0.1-0.8: emit 5 rapid signals (spaced across progress)
+Act 5, progress 0.2/0.4/0.6: emit BEACON, LESSON, TENSION signals
+Act 6, progress 0.4: handleDropPin()
+Act 7, progress 0.0: no action, just ambient
 ```
 
-- Small toggle pills for speed presets
-- Active preset highlighted
-- Mode-specific annotation updates automatically
-- The annotation is the key UX element -- it explains WHY the speeds are what they are
+### Highlighting (Canvas3D)
 
-## 5. Attenuation Model (usePhysics.ts)
+- Accept optional `storyHighlightId: string | null` prop
+- When set, the matching Object3D or Node3D gets a bright emissive pulse overlay (animated ring or glow) to draw attention during narration
 
-Replace binary `isOccluded` with graduated attenuation:
-
-```text
-computeAttenuation(source, target, objects):
-  walls = objects.filter(wall)
-  crossings = count how many wall bounding boxes the 
-              source->target line intersects
-  return Math.pow(MUFFLING_PER_HOP, crossings)
-  // MUFFLING_PER_HOP = 0.6 (each boundary crossing 
-  // reduces signal to 60%)
-```
-
-- `calculateSignal` uses this attenuation factor instead of the binary `blocked ? 0.15 : 1` occlusion
-- This means signals pass through attenuation boundaries at reduced volume, not blocked -- matching the real governance model where muffling_per_hop attenuates across container boundaries
-
-## 6. UbiquityApp.tsx Wiring
-
-- Import and instantiate `useTimeScale(mode)`
-- Create `timeScaleRef` and pass to `useSimulation`
-- Pass `timeScale`, `setTimeScale`, and labels to `Controls`
-- Update "Add Obstacle" button label and tooltip to use new naming
-
-## File Change Summary
+## File Summary
 
 | File | Changes |
 |---|---|
-| `src/hooks/useTimeScale.ts` | **New.** Time scale state, presets, mode-aware labels and normalization annotations |
-| `src/hooks/useSimulation.ts` | Accept timeScaleRef, multiply dt by time scale |
-| `src/hooks/usePhysics.ts` | Replace binary isOccluded with graduated computeAttenuation; rename wall references |
-| `src/components/Canvas3D.tsx` | Spherical wavefront geometry for all modes; rename "Permission Gate" to "Attenuation Boundary"; update Conductor label; center wavefronts at emitter height |
-| `src/components/Controls.tsx` | Add TimeControl strip with speed presets and normalization annotation; update obstacle tooltip |
-| `src/components/ModeExplanation.tsx` | Rewrite descriptions for governance accuracy |
-| `src/components/UbiquityApp.tsx` | Wire useTimeScale; update header with "opTorq Estate" identity; update object labels |
-| `src/types/index.ts` | No structural changes needed |
+| `src/hooks/useStoryMode.ts` | **New.** Story state machine, camera keyframes, act definitions, narration text, action queue |
+| `src/components/StoryOverlay.tsx` | **New.** Narration card, progress bar, skip/exit controls |
+| `src/components/Canvas3D.tsx` | Add `storyCamera` and `storyHighlightId` props; add `StoryCameraController` component; conditionally disable OrbitControls |
+| `src/components/UbiquityApp.tsx` | Wire useStoryMode; add Story button to header; pass story props to Canvas3D; render StoryOverlay |
 
