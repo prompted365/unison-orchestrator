@@ -5,9 +5,9 @@ const PX_PER_METER = 60;
 
 // Scaled velocities (px/s) so wavefronts are visible
 const PHYSICS_PROFILES = {
-  acoustic: { velocity: 320, alpha: 0.012, echoes: true },   // ~2.5s to cross 800px
-  light:    { velocity: 6000, alpha: 0.0002, echoes: false }, // ~130ms to cross
-  gravity:  { velocity: 6000, alpha: 0, echoes: false }       // same speed, but warps
+  acoustic: { velocity: 200, alpha: 0.012, echoes: true },   // ~4s to cross 800px — watch pressure fronts arrive
+  light:    { velocity: 4000, alpha: 0.0002, echoes: false }, // ~200ms to cross — fast flash, trackable
+  gravity:  { velocity: 800, alpha: 0, echoes: false }        // ~1s to cross — heavy ripple, visually distinct
 };
 
 export const usePhysics = (mode: CommunicationMode) => {
@@ -97,7 +97,7 @@ export const usePhysics = (mode: CommunicationMode) => {
         }));
     },
 
-    // Mirror reflection: returns reflected direction
+    // Mirror reflection: proper specular reflection using surface normal
     computeMirrorReflections: (wavefrontX: number, wavefrontY: number, wavefrontRadius: number, objects: WorldObject[]): Array<{ x: number; y: number; angle: number; energy: number; objectId: string }> => {
       if (mode !== 'light') return [];
       return objects
@@ -111,14 +111,31 @@ export const usePhysics = (mode: CommunicationMode) => {
         .map(mirror => {
           const cx = mirror.x + mirror.width / 2;
           const cy = mirror.y + mirror.height / 2;
+
+          // Surface normal from surfaceAngle or inferred from aspect ratio
+          const surfAngle = mirror.surfaceAngle ?? (mirror.width > mirror.height ? 0 : Math.PI / 2);
+          // Normal is perpendicular to surface
+          const nx = Math.cos(surfAngle + Math.PI / 2);
+          const ny = Math.sin(surfAngle + Math.PI / 2);
+
+          // Incident direction (from wavefront source toward mirror center)
           const dx = cx - wavefrontX;
           const dy = cy - wavefrontY;
-          const reflAngle = Math.atan2(dy, dx) + Math.PI;
+          const len = Math.sqrt(dx * dx + dy * dy) || 1;
+          const ix = dx / len;
+          const iy = dy / len;
+
+          // Specular reflection: r = i - 2(i·n)n
+          const dot = ix * nx + iy * ny;
+          const rx = ix - 2 * dot * nx;
+          const ry = iy - 2 * dot * ny;
+          const reflAngle = Math.atan2(ry, rx);
+
           return {
             x: cx,
             y: cy,
             angle: reflAngle,
-            energy: 0.7,
+            energy: 0.85, // mirrors are highly efficient
             objectId: mirror.id
           };
         });

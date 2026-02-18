@@ -148,7 +148,7 @@ export const UbiquityApp = () => {
       case 'light':
         return [
           { id: 'lens-1', type: 'lens', x: 120, y: 110, width: 44, height: 44 },
-          { id: 'mirror-1', type: 'mirror', x: 610, y: 160, width: 70, height: 22 },
+          { id: 'mirror-1', type: 'mirror', x: 610, y: 160, width: 70, height: 22, surfaceAngle: Math.PI * 0.15 },
           { id: 'lens-2', type: 'lens', x: 180, y: 430, width: 36, height: 36 }
         ];
       case 'gravity':
