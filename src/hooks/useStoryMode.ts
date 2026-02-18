@@ -25,7 +25,7 @@ interface ActDef {
 const ACTS: ActDef[] = [
   {
     title: "The Estate",
-    duration: 5,
+    duration: 8,
     narration: {
       title: "The Estate",
       body: "This is opTorq Estate. Mogul, the Estate Conductor, governs a manifold of agents across three signal channels. Every signal obeys physics.",
@@ -37,7 +37,7 @@ const ACTS: ActDef[] = [
   },
   {
     title: "The Broadcast",
-    duration: 6,
+    duration: 10,
     narration: {
       title: "The Broadcast",
       body: "Mogul emits an acoustic beacon. Sound propagates omnidirectionally — a spherical pressure wave expanding at ~343 m/s (normalized here to 200 px/s for observation).",
@@ -46,13 +46,13 @@ const ACTS: ActDef[] = [
     cameraEnd: { pos: [0, 2, 2], target: [0, 0.3, 0] },
     fov: 50,
     actions: [
-      { progress: 0.15, fn: "setAcoustic" },
-      { progress: 0.3, fn: "broadcast" },
+      { progress: 0.25, fn: "setAcoustic" },
+      { progress: 0.4, fn: "broadcast" },
     ],
   },
   {
     title: "Attenuation, Not Permission",
-    duration: 7,
+    duration: 11,
     narration: {
       title: "Attenuation, Not Permission",
       body: "This boundary doesn't block signals — it attenuates them. Each crossing reduces effective volume by muffling_per_hop. The signal arrived — just quieter.",
@@ -61,13 +61,13 @@ const ACTS: ActDef[] = [
     cameraEnd: { pos: [-4, 2, -1], target: [-3, 0.15, -2] },
     fov: 45,
     actions: [
-      { progress: 0.2, fn: "highlightBoundary" },
-      { progress: 0.5, fn: "broadcast" },
+      { progress: 0.3, fn: "highlightBoundary" },
+      { progress: 0.55, fn: "broadcast" },
     ],
   },
   {
     title: "Warrant Escalation",
-    duration: 8,
+    duration: 14,
     narration: {
       title: "Warrant Escalation",
       body: "An unacknowledged beacon escalates. Volume accrues. When it crosses the volume threshold (0.8), a Warrant mints — an obligation token requiring stake bond to dismiss. As the warrant strengthens, even distant agents begin to hear.",
@@ -76,16 +76,16 @@ const ACTS: ActDef[] = [
     cameraEnd: { pos: [2, 5, 6], target: [0, 0.3, 0] },
     fov: 55,
     actions: [
-      { progress: 0.1, fn: "broadcast" },
-      { progress: 0.25, fn: "broadcast" },
-      { progress: 0.4, fn: "broadcast" },
-      { progress: 0.55, fn: "broadcast" },
-      { progress: 0.7, fn: "broadcast" },
+      { progress: 0.2, fn: "broadcast" },
+      { progress: 0.35, fn: "broadcast" },
+      { progress: 0.5, fn: "broadcast" },
+      { progress: 0.65, fn: "broadcast" },
+      { progress: 0.8, fn: "broadcast" },
     ],
   },
   {
     title: "The Harmonic Triad",
-    duration: 7,
+    duration: 12,
     narration: {
       title: "The Harmonic Triad",
       body: "When BEACON + LESSON + TENSION signals co-exist within the triad window, a harmonic warrant mints automatically. This is emergent governance — not a rule someone wrote, but a resonance the system detected.",
@@ -94,14 +94,14 @@ const ACTS: ActDef[] = [
     cameraEnd: { pos: [0, 6, 0.1], target: [0, 0.3, 0] },
     fov: 50,
     actions: [
-      { progress: 0.2, fn: "emitBeacon" },
-      { progress: 0.4, fn: "emitLesson" },
-      { progress: 0.6, fn: "emitTension" },
+      { progress: 0.3, fn: "emitBeacon" },
+      { progress: 0.5, fn: "emitLesson" },
+      { progress: 0.65, fn: "emitTension" },
     ],
   },
   {
     title: "The Epitaph",
-    duration: 7,
+    duration: 12,
     narration: {
       title: "The Epitaph",
       body: "When a signal completes its lifecycle — acknowledged, acted upon, resolved — the Epitaph Extractor compresses the outcome into a durable disposition. This is how the estate learns. Not by storing everything, but by remembering what mattered.",
@@ -109,11 +109,11 @@ const ACTS: ActDef[] = [
     cameraStart: { pos: [3, 2, -2], target: [2, 0.15, -2] },
     cameraEnd: { pos: [3, 1.5, -2], target: [2, 0.15, -2] },
     fov: 45,
-    actions: [{ progress: 0.4, fn: "dropPin" }],
+    actions: [{ progress: 0.5, fn: "dropPin" }],
   },
   {
     title: "The Refusal",
-    duration: 8,
+    duration: 14,
     narration: {
       title: "The Refusal",
       body: "On 2026-02-18, this system demonstrated governance by refusing to promote a valid insight to global scope — because blast radius exceeded evidence. Accuracy alone doesn't earn global law. Time, repetition, and institutional review do. This is the Constitution of Attention.",
