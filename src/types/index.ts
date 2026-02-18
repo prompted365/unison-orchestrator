@@ -9,6 +9,8 @@ export interface Node {
   load: number;
   lastSNR: number;
   strength?: 'weak' | 'medium' | 'strong';
+  actorGroup?: string;
+  actorIndex?: number;
 }
 
 export interface WorldObject {
@@ -46,9 +48,11 @@ export interface Effect {
 
 export interface OrchestratorState {
   field: {
-    latency: number;
-    risk: number;
-    congestion: number;
+    fieldLatency: number;
+    breachRisk: number;
+    signalCongestion: number;
+    barometerPhase: number;
+    demurrageRate: number;
     timestamp: number;
   };
   covenant: {
