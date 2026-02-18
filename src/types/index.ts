@@ -20,6 +20,7 @@ export interface WorldObject {
   y: number;
   width: number;
   height: number;
+  surfaceAngle?: number; // radians, for mirror orientation
 }
 
 export interface ModalPin {
@@ -56,6 +57,7 @@ export interface Wavefront {
   velocity: number; // px per second (scaled)
   mode: CommunicationMode;
   isEcho: boolean;
+  isBeam?: boolean; // directional beam (mirror reflection) — does not expand radially
   parentId?: string;
   angle?: number; // for directional wavefronts (reflections)
   createdAt: number;

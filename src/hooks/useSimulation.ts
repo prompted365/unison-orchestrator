@@ -48,11 +48,25 @@ export const useSimulation = (
 
     setWavefronts(prev => {
       let updated = prev.map(wf => {
+        // Beam wavefronts translate along angle instead of expanding radially
+        if (wf.isBeam && wf.angle != null) {
+          const dx = Math.cos(wf.angle) * wf.velocity * dt;
+          const dy = Math.sin(wf.angle) * wf.velocity * dt;
+          const age = (time - wf.createdAt) / 1000;
+          const newEnergy = wf.energy * (1 - age / 2.5); // fade over ~2.5s
+          return {
+            ...wf,
+            sourceX: wf.sourceX + dx,
+            sourceY: wf.sourceY + dy,
+            radius: wf.radius + wf.velocity * dt * 0.02, // very slight expansion for visibility
+            energy: Math.max(0, newEnergy)
+          };
+        }
+
         // Time dilation for gravity mode
         let effectiveVelocity = wf.velocity;
         if (currentMode === 'gravity') {
           const dilation = phys.computeTimeDilation(wf.sourceX, wf.sourceY, currentObjects);
-          // Wavefront slows where spacetime is curved
           const edgeDilation = phys.computeTimeDilation(
             wf.sourceX + wf.radius * 0.7,
             wf.sourceY + wf.radius * 0.7,
@@ -72,7 +86,6 @@ export const useSimulation = (
           const inverseSquare = 1 / (1 + distMeters * distMeters * 0.1);
           const absorption = Math.exp(-phys.profile.alpha * distMeters);
           newEnergy = wf.energy * inverseSquare * absorption;
-          // Normalize so it doesn't decay too fast in one frame
           newEnergy = wf.energy - (wf.energy - newEnergy) * dt * 2;
         }
 
@@ -135,8 +148,8 @@ export const useSimulation = (
           });
         }
 
-        // Light mirror reflections
-        if (currentMode === 'light') {
+        // Light mirror reflections → spawn beam wavefronts
+        if (currentMode === 'light' && !wf.isBeam) {
           const reflections = phys.computeMirrorReflections(wf.sourceX, wf.sourceY, wf.radius, currentObjects);
           reflections.forEach(refl => {
             if (wf.hasSpawnedEchoes!.has(refl.objectId)) return;
@@ -149,7 +162,8 @@ export const useSimulation = (
               energy: refl.energy * wf.energy,
               velocity: wf.velocity,
               mode: currentMode,
-              isEcho: true,
+              isEcho: false,
+              isBeam: true, // directional beam, not expanding sphere
               parentId: wf.id,
               angle: refl.angle,
               createdAt: time,

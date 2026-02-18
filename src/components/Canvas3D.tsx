@@ -197,8 +197,30 @@ const Node3D = ({
   );
 };
 
+// ─── Gravity Well Floor Rings ────────────────────────────────────────
+const GravityWellRings = ({ size, position }: { size: number; position: [number, number, number] }) => {
+  const groupRef = useRef<THREE.Group>(null);
+  const rs = size * 0.003; // Schwarzschild-proportional in world units
+  const radii = [rs * 1.2, rs * 2.2, rs * 3.5, rs * 5];
+  
+  useFrame((_, dt) => {
+    if (groupRef.current) groupRef.current.rotation.y += dt * 0.08;
+  });
+
+  return (
+    <group ref={groupRef} position={position} rotation={[-Math.PI / 2, 0, 0]}>
+      {radii.map((r, i) => (
+        <mesh key={i}>
+          <ringGeometry args={[r, r + 0.015, 64]} />
+          <meshBasicMaterial color="#9333ea" transparent opacity={0.35 - i * 0.07} side={THREE.DoubleSide} depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  );
+};
+
 // ─── 3D World Object (wall / lens / mirror / mass) ───────────────────
-const Object3D = ({ obj }: { obj: WorldObject }) => {
+const Object3D = ({ obj, mode }: { obj: WorldObject; mode: CommunicationMode }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
   const w = toWorld(obj.width);
@@ -208,9 +230,7 @@ const Object3D = ({ obj }: { obj: WorldObject }) => {
 
   useFrame((_, dt) => {
     if (!meshRef.current) return;
-    if (obj.type === 'mass') {
-      meshRef.current.rotation.y += dt * 0.2;
-    }
+    if (obj.type === 'mass') meshRef.current.rotation.y += dt * 0.12;
   });
 
   const label = obj.type === 'wall' ? 'Permission Gate'
@@ -218,74 +238,95 @@ const Object3D = ({ obj }: { obj: WorldObject }) => {
     : obj.type === 'mirror' ? 'Mirror'
     : 'Invariant Mass';
 
-  const color = obj.type === 'wall' ? '#666'
-    : obj.type === 'lens' ? '#4ecdc4'
-    : obj.type === 'mirror' ? '#8ecae6'
-    : '#9333ea';
-
   const height3D = obj.type === 'wall' ? 0.3 : obj.type === 'mass' ? Math.max(w, h) : 0.15;
+  const surfAngle = obj.surfaceAngle ?? 0;
 
   return (
     <group position={[px, height3D / 2, pz]}>
-      <mesh
-        ref={meshRef}
-        onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
-        onPointerOut={() => setHovered(false)}
-      >
-        {obj.type === 'mass' ? (
-          <sphereGeometry args={[Math.max(w, h) / 2, 24, 24]} />
-        ) : obj.type === 'lens' ? (
-          <torusGeometry args={[Math.max(w, h) / 2, 0.04, 8, 24]} />
-        ) : (
-          <boxGeometry args={[w, height3D, h]} />
-        )}
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={obj.type === 'mass' ? 0.6 : 0.2}
-          transparent
-          opacity={obj.type === 'lens' ? 0.5 : obj.type === 'mass' ? 0.7 : 0.85}
-          metalness={obj.type === 'mirror' ? 0.9 : 0.3}
-          roughness={obj.type === 'mirror' ? 0.1 : 0.6}
-        />
-      </mesh>
+      {/* Permission Gate: concrete-rough box + wireframe overlay */}
+      {obj.type === 'wall' && (
+        <>
+          <mesh ref={meshRef}
+            onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
+            onPointerOut={() => setHovered(false)}
+          >
+            <boxGeometry args={[w, height3D, h]} />
+            <meshStandardMaterial color="#3a3a3a" emissive={MODE_COLORS[mode]} emissiveIntensity={0.08} metalness={0.05} roughness={0.92} />
+          </mesh>
+          <mesh>
+            <boxGeometry args={[w * 1.005, height3D * 1.01, h * 1.005]} />
+            <meshBasicMaterial color={MODE_COLORS[mode]} wireframe transparent opacity={0.15} />
+          </mesh>
+        </>
+      )}
 
-      {/* Gravity well ring for masses */}
+      {/* Observability Lens: torus + glass disc */}
+      {obj.type === 'lens' && (
+        <>
+          <mesh ref={meshRef}
+            onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
+            onPointerOut={() => setHovered(false)}
+          >
+            <torusGeometry args={[Math.max(w, h) / 2, 0.04, 12, 32]} />
+            <meshStandardMaterial color="#4ecdc4" emissive="#4ecdc4" emissiveIntensity={0.3} metalness={0.6} roughness={0.2} transparent opacity={0.7} />
+          </mesh>
+          <mesh rotation={[-Math.PI / 2, 0, 0]}>
+            <circleGeometry args={[Math.max(w, h) / 2 - 0.02, 32]} />
+            <meshStandardMaterial color="#66eeee" emissive="#4ecdc4" emissiveIntensity={0.05} metalness={0.9} roughness={0.1} transparent opacity={0.12} side={THREE.DoubleSide} />
+          </mesh>
+        </>
+      )}
+
+      {/* Mirror: reflective plane + surface normal indicator */}
+      {obj.type === 'mirror' && (
+        <group rotation={[0, surfAngle, 0]}>
+          <mesh ref={meshRef}
+            onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
+            onPointerOut={() => setHovered(false)}
+          >
+            <boxGeometry args={[w, 0.02, h]} />
+            <meshStandardMaterial color="#d0e8f8" emissive="#8ecae6" emissiveIntensity={0.15} metalness={0.95} roughness={0.05} />
+          </mesh>
+          <mesh position={[0, 0.15, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.008, 0.008, 0.3, 6]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.5} />
+          </mesh>
+          <mesh position={[0, 0.31, 0]} rotation={[Math.PI, 0, 0]}>
+            <coneGeometry args={[0.02, 0.05, 6]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.5} />
+          </mesh>
+        </group>
+      )}
+
+      {/* Invariant Mass: dark sphere + concentric gravity well rings */}
       {obj.type === 'mass' && (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -height3D / 2 + 0.01, 0]}>
-          <ringGeometry args={[Math.max(w, h) / 2, Math.max(w, h) / 2 + 0.5, 48]} />
-          <meshBasicMaterial color="#9333ea" transparent opacity={0.15} side={THREE.DoubleSide} />
-        </mesh>
+        <>
+          <mesh ref={meshRef}
+            onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
+            onPointerOut={() => setHovered(false)}
+          >
+            <sphereGeometry args={[Math.max(w, h) / 2, 32, 32]} />
+            <meshStandardMaterial color="#1a0033" emissive="#6b21a8" emissiveIntensity={0.5} metalness={0.7} roughness={0.3} transparent opacity={0.85} />
+          </mesh>
+          <GravityWellRings size={obj.width + obj.height} position={[0, -height3D / 2 + 0.01, 0]} />
+        </>
       )}
 
       {/* Label */}
       <Html position={[0, height3D / 2 + 0.25, 0]} center distanceFactor={10} style={{ pointerEvents: 'none' }}>
         <div style={{
-          background: 'hsla(240,10%,4%,0.8)',
-          border: `1px solid ${color}44`,
-          borderRadius: 5,
-          padding: '2px 6px',
-          fontSize: 9,
-          color: '#ccc',
-          fontFamily: 'monospace',
-          whiteSpace: 'nowrap',
+          background: 'hsla(240,10%,4%,0.8)', border: '1px solid hsla(0,0%,50%,0.25)',
+          borderRadius: 5, padding: '2px 6px', fontSize: 9, color: '#ccc', fontFamily: 'monospace', whiteSpace: 'nowrap',
         }}>
           {label}
         </div>
       </Html>
 
-      {/* Hover details */}
       {hovered && (
         <Html position={[0, height3D / 2 + 0.5, 0]} center distanceFactor={6}>
           <div style={{
-            background: 'hsla(240,10%,6%,0.95)',
-            border: `1px solid ${color}88`,
-            borderRadius: 8,
-            padding: '6px 10px',
-            fontSize: 10,
-            color: '#eee',
-            fontFamily: 'monospace',
-            pointerEvents: 'none',
+            background: 'hsla(240,10%,6%,0.95)', border: '1px solid hsla(0,0%,60%,0.4)',
+            borderRadius: 8, padding: '6px 10px', fontSize: 10, color: '#eee', fontFamily: 'monospace', pointerEvents: 'none',
           }}>
             {label} ({obj.width}×{obj.height}px)
           </div>
@@ -295,28 +336,109 @@ const Object3D = ({ obj }: { obj: WorldObject }) => {
   );
 };
 
-// ─── 3D Wavefront (expanding sphere shell) ───────────────────────────
-const Wavefront3D = ({ wf }: { wf: Wavefront }) => {
+// ─── 3D Wavefront — mode-specific rendering ─────────────────────────
+const Wavefront3D = ({ wf, objects }: { wf: Wavefront; objects: WorldObject[] }) => {
+  const meshRef = useRef<THREE.Mesh>(null);
   const r = toWorld(wf.radius);
   const px = toWorld(wf.sourceX - CENTER_X);
   const pz = toWorld(wf.sourceY - CENTER_Y);
   const color = MODE_COLORS[wf.mode];
-  const opacity = Math.min(0.5, wf.energy * 0.6);
-  if (opacity < 0.01 || r > 12) return null;
+  const opacity = Math.min(0.6, wf.energy * 0.7);
+  if (opacity < 0.01 || (!wf.isBeam && r > 12)) return null;
 
-  return (
-    <mesh position={[px, 0.1, pz]}>
-      <sphereGeometry args={[r, 32, 16]} />
-      <meshBasicMaterial
-        color={color}
-        transparent
-        opacity={opacity}
-        wireframe={wf.isEcho}
-        side={THREE.DoubleSide}
-        depthWrite={false}
-      />
-    </mesh>
-  );
+  // ── BEAM wavefront (mirror reflection): bright narrow cylinder ──
+  if (wf.isBeam && wf.angle != null) {
+    const beamLength = 0.4; // world units of visible beam segment
+    const bx = Math.cos(wf.angle);
+    const bz = Math.sin(wf.angle);
+    const brightness = Math.min(1, wf.energy * 1.5);
+    return (
+      <group position={[px, 0.12, pz]}>
+        <mesh
+          rotation={[0, -wf.angle + Math.PI / 2, Math.PI / 2]}
+        >
+          <cylinderGeometry args={[0.015, 0.015, beamLength, 8]} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={brightness * 0.95} depthWrite={false} />
+        </mesh>
+        {/* Bright glow around beam */}
+        <mesh rotation={[0, -wf.angle + Math.PI / 2, Math.PI / 2]}>
+          <cylinderGeometry args={[0.06, 0.06, beamLength * 0.8, 8]} />
+          <meshBasicMaterial color="#88eeff" transparent opacity={brightness * 0.25} depthWrite={false} />
+        </mesh>
+        <pointLight color="#88eeff" intensity={brightness * 4} distance={2} />
+      </group>
+    );
+  }
+
+  // ── ACOUSTIC: expanding torus ring (pressure wave) ──
+  if (wf.mode === 'acoustic') {
+    const tubeRadius = 0.03 + wf.energy * 0.04;
+    // Color shifts from bright orange → dull amber as energy decays
+    const hue = 25 + (1 - wf.energy) * 15; // 25°→40°
+    const sat = 0.8 + wf.energy * 0.2;
+    const lit = 0.35 + wf.energy * 0.25;
+    const waveColor = new THREE.Color().setHSL(hue / 360, sat, lit);
+    const yOscillation = Math.sin(r * 8) * 0.02 * wf.energy;
+
+    if (wf.isEcho) {
+      // Echo: wireframe torus, dimmer, greenish tint
+      const echoColor = new THREE.Color().setHSL(80 / 360, 0.5, 0.35);
+      return (
+        <mesh ref={meshRef} position={[px, 0.08 + yOscillation, pz]} rotation={[-Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[r, tubeRadius * 0.6, 8, 48]} />
+          <meshBasicMaterial color={echoColor} transparent opacity={opacity * 0.5} wireframe side={THREE.DoubleSide} depthWrite={false} />
+        </mesh>
+      );
+    }
+
+    return (
+      <mesh ref={meshRef} position={[px, 0.1 + yOscillation, pz]} rotation={[-Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[r, tubeRadius, 10, 64]} />
+        <meshBasicMaterial color={waveColor} transparent opacity={opacity} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+    );
+  }
+
+  // ── LIGHT: thin expanding disc ring ──
+  if (wf.mode === 'light') {
+    return (
+      <mesh ref={meshRef} position={[px, 0.05, pz]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[Math.max(0, r - 0.02), r + 0.01, 64]} />
+        <meshBasicMaterial color={color} transparent opacity={opacity * 0.8} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+    );
+  }
+
+  // ── GRAVITY: undulating elliptical ring ──
+  if (wf.mode === 'gravity') {
+    // Compute dilation-based distortion near masses
+    let scaleX = 1, scaleZ = 1;
+    objects.filter(o => o.type === 'mass').forEach(mass => {
+      const cx = toWorld(mass.x + mass.width / 2 - CENTER_X);
+      const cz = toWorld(mass.y + mass.height / 2 - CENTER_Y);
+      const dist = Math.sqrt((px - cx) ** 2 + (pz - cz) ** 2);
+      const pull = 0.3 / (dist + 0.5);
+      const angle = Math.atan2(pz - cz, px - cx);
+      scaleX += pull * Math.abs(Math.cos(angle));
+      scaleZ += pull * Math.abs(Math.sin(angle));
+    });
+
+    const yUndulation = Math.sin(r * 4 + Date.now() * 0.001) * 0.04;
+
+    return (
+      <mesh
+        ref={meshRef}
+        position={[px, 0.08 + yUndulation, pz]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        scale={[scaleX, scaleZ, 1]}
+      >
+        <torusGeometry args={[r, 0.025, 8, 64]} />
+        <meshBasicMaterial color="#9333ea" transparent opacity={opacity * 0.7} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+    );
+  }
+
+  return null;
 };
 
 // ─── 3D Modal Pin (floating card) ────────────────────────────────────
@@ -618,12 +740,12 @@ const Scene = ({
 
       {/* Wavefronts */}
       {wavefronts.map(wf => (
-        <Wavefront3D key={wf.id} wf={wf} />
+        <Wavefront3D key={wf.id} wf={wf} objects={objects} />
       ))}
 
       {/* World objects */}
       {objects.map(obj => (
-        <Object3D key={obj.id} obj={obj} />
+        <Object3D key={obj.id} obj={obj} mode={mode} />
       ))}
 
       {/* Nodes */}
@@ -650,7 +772,7 @@ const Scene = ({
 // ─── Main Export ─────────────────────────────────────────────────────
 export const Canvas3D = (props: Canvas3DProps) => {
   return (
-    <div className="relative w-full h-[560px] rounded-2xl overflow-hidden border border-primary/20"
+    <div className="relative w-full h-full overflow-hidden border border-primary/20"
       style={{ background: '#050510' }}
     >
       <Canvas
