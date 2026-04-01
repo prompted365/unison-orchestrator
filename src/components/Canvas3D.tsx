@@ -1194,6 +1194,11 @@ const Scene = ({
         const hlObj = objects.find(o => o.id === storyHighlightId);
         return hlObj ? <StoryHighlight obj={hlObj} /> : null;
       })()}
+
+      {/* Story callout labels */}
+      {storyCallouts?.map((c, i) => (
+        <StoryCallout3D key={`callout-${i}`} callout={c} />
+      ))}
     </>
   );
 };
