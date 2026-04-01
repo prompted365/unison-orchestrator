@@ -377,7 +377,12 @@ export const UbiquityApp = () => {
                 {storyMode.storyArcs.map((arc, i) => (
                   <button
                     key={arc.band}
-                    onClick={() => { storyMode.startStory(i); setStoryMenuOpen(false); }}
+                    onClick={() => {
+                      const band = arc.band as StoryBand;
+                      initializeScene(band);
+                      storyMode.startStory(i);
+                      setStoryMenuOpen(false);
+                    }}
                     className="w-full text-left px-3 py-2 rounded-md text-xs font-medium hover:bg-muted/40 transition-colors flex items-center gap-2"
                   >
                     <span>{arc.band === 'acoustic' ? '🔊' : arc.band === 'light' ? '💡' : '🌀'}</span>
