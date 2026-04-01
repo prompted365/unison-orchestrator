@@ -433,6 +433,7 @@ export const UbiquityApp = () => {
           emittingAgentIds={emittingAgentIds}
           storyCamera={storyMode.storyCamera}
           storyHighlightId={storyMode.highlightId}
+          storyCallouts={storyMode.callouts}
         />
         {storyMode.isPlaying && (
           <StoryOverlay
