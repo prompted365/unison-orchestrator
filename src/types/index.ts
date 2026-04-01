@@ -1,3 +1,35 @@
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                    TALOS INTEGRATION — MIGRATION CHECKLIST                  ║
+// ║                                                                              ║
+// ║  D1. No Entity Standing (citizen/resident/ambassador/guest…)                ║
+// ║      → Node needs `standing` field for visual + access differentiation       ║
+// ║  D2. No Actor Mode (none/invoked/delegated/autonomous/collective)           ║
+// ║      → Node.type is only 'orchestrator'|'agent'; needs actor_mode            ║
+// ║  D3. Agent Inbox Not Modeled                                                 ║
+// ║      → No lateral agent-to-agent work-item routing or queue visualization    ║
+// ║  D4. Astragals Not Modeled                                                   ║
+// ║      → No high-assurance WAL-backed point-to-point transport                 ║
+// ║  D5. No Lineage / Edge Visualization                                         ║
+// ║      → Only orchestrator→agent lines; no SPAWNED/DELEGATED_BY/ACTED_FOR      ║
+// ║  D6. Governance Lattice Absent                                               ║
+// ║      → No rung hierarchy (site < domain < estate < federation < global)      ║
+// ║  D7. Coordinate System Undocumented                                          ║
+// ║      → 2D px (800×560) → 3D via SCALE=0.02, center (400,280)               ║
+// ║  D8. Object Types Use Internal Names                                         ║
+// ║      → 'wall'→Attenuation Boundary, 'mass'→Invariant Field tension plate     ║
+// ║  D9. No Tic / Governance Time                                                ║
+// ║      → Simulation uses wall-clock only; no governance epoch boundaries       ║
+// ║  D10. CogPR / Artifact Subgraph Absent                                       ║
+// ║      → No signals/mandates/rules/policies rendered as scene entities         ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+
+// ═══ [CE] CIVIL ENGINEER ═══════════════════════════════════════
+// Canonical: CommunicationMode — maps to CGG v3 signal bands
+//   'acoustic' = PRIMITIVE band, omnidirectional pub/sub with muffling_per_hop
+//   'light'    = COGNITIVE band, high-speed broadcast with lensing/reflection
+//   'gravity'  = PRIMITIVE band (field-level), constitutional pressure waves
+// Gap: No SOCIAL or PRESTIGE bands modeled spatially (handled in useSignalEngine)
+// ════════════════════════════════════════════════════════════════
 export type CommunicationMode = 'acoustic' | 'light' | 'gravity';
 
 export interface Node {
