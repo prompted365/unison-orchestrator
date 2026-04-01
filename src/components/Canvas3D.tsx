@@ -44,13 +44,14 @@ interface Canvas3DProps {
 
 // ─── 3D Node (sphere + label) ────────────────────────────────────────
 const Node3D = ({
-  node, mode, signal, onEnterCockpit, isCockpitTarget, isEmitting
+  node, mode, signal, onEnterCockpit, isCockpitTarget, isEmitting, hideLabels
 }: {
   node: Node; mode: CommunicationMode;
   signal?: AgentSignalState;
   onEnterCockpit: (id: string) => void;
   isCockpitTarget: boolean;
   isEmitting?: boolean;
+  hideLabels?: boolean;
 }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const emitRingRef = useRef<THREE.Mesh>(null);
