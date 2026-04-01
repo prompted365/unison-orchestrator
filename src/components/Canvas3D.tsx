@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Html, Stars, Line } from "@react-three/drei";
 import * as THREE from "three";
 import { CommunicationMode, Node, WorldObject, ModalPin, Effect, Wavefront, AgentSignalState } from "../types";
-import { StoryCamera } from "../hooks/useStoryMode";
+import { StoryCamera, StoryCallout } from "../hooks/useStoryMode";
 
 // ─── Constants ───────────────────────────────────────────────────────
 const SCALE = 0.02;
@@ -90,6 +90,7 @@ interface Canvas3DProps {
   emittingAgentIds?: string[];
   storyCamera?: StoryCamera | null;
   storyHighlightId?: string | null;
+  storyCallouts?: StoryCallout[];
 }
 
 // ─── 3D Node (sphere + label) ────────────────────────────────────────
@@ -1065,11 +1066,42 @@ const StoryHighlight = ({ obj }: { obj: WorldObject }) => {
   );
 };
 
+// ─── Story Callout 3D (in-scene HTML labels) ─────────────────────────
+const StoryCallout3D = ({ callout }: { callout: StoryCallout }) => {
+  return (
+    <group position={callout.worldPos}>
+      <Html center distanceFactor={6} zIndexRange={[100, 50]}
+        style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+        <div style={{
+          background: 'hsla(240,10%,4%,0.85)',
+          border: `1px solid ${callout.color || '#00ffcc'}55`,
+          borderRadius: 6,
+          padding: '3px 10px',
+          fontSize: 11,
+          fontWeight: 600,
+          color: callout.color || '#00ffcc',
+          fontFamily: 'monospace',
+          letterSpacing: '0.04em',
+          boxShadow: `0 0 12px ${callout.color || '#00ffcc'}22`,
+          animation: 'fadeInUp 0.6s ease-out',
+        }}>
+          {callout.label}
+        </div>
+      </Html>
+      {/* Small marker dot */}
+      <mesh>
+        <sphereGeometry args={[0.03, 8, 8]} />
+        <meshBasicMaterial color={callout.color || '#00ffcc'} transparent opacity={0.8} />
+      </mesh>
+    </group>
+  );
+};
+
 // ─── Scene ───────────────────────────────────────────────────────────
 const Scene = ({
   mode, nodes, objects, modalPins, wavefronts, agentSignals,
   cockpitNodeId, onEnterCockpit, onExitCockpit, onCanvasClick, emittingAgentIds,
-  storyCamera, storyHighlightId
+  storyCamera, storyHighlightId, storyCallouts
 }: Omit<Canvas3DProps, 'effects'>) => {
   const hideLabels = !!storyCamera;
   const orchestratorNode = useMemo(() => nodes.find(n => n.type === 'orchestrator'), [nodes]);
@@ -1080,7 +1112,7 @@ const Scene = ({
   return (
     <>
       {/* Hemisphere ambient — warm sky, cool ground */}
-      <hemisphereLight args={['#ffe8c8', '#0a0a2a', 0.25]} />
+      <hemisphereLight args={['#ffe8c8', '#0a0a2a', 0.6]} />
 
       {/* The Sun — distant star mesh */}
       <group position={[80, 60, -40]}>
@@ -1097,13 +1129,13 @@ const Scene = ({
           <sphereGeometry args={[7, 32, 32]} />
           <meshBasicMaterial color="#ffcc66" transparent opacity={0.05} />
         </mesh>
-        <pointLight color="#fff4d6" intensity={3} distance={200} decay={1} />
+        <pointLight color="#fff4d6" intensity={5} distance={200} decay={1} />
       </group>
 
       {/* Primary sunlight — directional from the sun's position, with shadow */}
       <directionalLight
         position={[80, 60, -40]}
-        intensity={1.2}
+        intensity={1.8}
         color="#fff0d0"
         castShadow
         shadow-mapSize-width={1024}
@@ -1119,12 +1151,12 @@ const Scene = ({
       {/* Cool fill from opposite side — reflected skylight */}
       <directionalLight
         position={[-40, 30, 30]}
-        intensity={0.2}
+        intensity={0.4}
         color="#8899cc"
       />
 
       {/* Warm hearth glow at center */}
-      <pointLight position={[0, 3, 0]} intensity={0.3} color="#ff9944" distance={20} decay={2} />
+      <pointLight position={[0, 3, 0]} intensity={0.6} color="#ff9944" distance={20} decay={2} />
       <Stars radius={50} depth={30} count={2000} factor={3} fade speed={0.5} />
       <Terrain mode={mode} objects={objects} wavefronts={wavefronts} />
 
@@ -1162,6 +1194,11 @@ const Scene = ({
         const hlObj = objects.find(o => o.id === storyHighlightId);
         return hlObj ? <StoryHighlight obj={hlObj} /> : null;
       })()}
+
+      {/* Story callout labels */}
+      {storyCallouts?.map((c, i) => (
+        <StoryCallout3D key={`callout-${i}`} callout={c} />
+      ))}
     </>
   );
 };
