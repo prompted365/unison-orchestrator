@@ -425,6 +425,8 @@ export const UbiquityApp = () => {
             totalActs={storyMode.totalActs}
             actProgress={storyMode.actProgress}
             narration={storyMode.narration}
+            activeBand={storyMode.activeBand}
+            arcTitle={storyMode.arcTitle}
             onSkip={storyMode.skipAct}
             onExit={storyMode.stopStory}
           />
