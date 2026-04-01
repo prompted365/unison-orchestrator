@@ -526,14 +526,18 @@ const Wavefront3D = ({ wf, objects }: { wf: Wavefront; objects: WorldObject[] })
   if (wf.mode === 'light') {
     return (
       <group position={[px, emitterY, pz]}>
+        {/* Bright leading edge shell */}
         <mesh ref={meshRef}>
           <sphereGeometry args={[r, 32, 24]} />
-          <meshBasicMaterial color={color} transparent opacity={opacity * 0.1} side={THREE.DoubleSide} depthWrite={false} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={opacity * 0.18} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
+        {/* Colored inner volume */}
         <mesh>
-          <sphereGeometry args={[Math.max(0, r - 0.02), 32, 24]} />
-          <meshBasicMaterial color={color} transparent opacity={opacity * 0.06} side={THREE.BackSide} depthWrite={false} />
+          <sphereGeometry args={[Math.max(0, r - 0.015), 32, 24]} />
+          <meshBasicMaterial color={color} transparent opacity={opacity * 0.08} side={THREE.BackSide} depthWrite={false} />
         </mesh>
+        {/* Flash bloom at origin when fresh */}
+        {r < 1 && <pointLight color="#4ecdc4" intensity={opacity * 8} distance={3} decay={2} />}
       </group>
     );
   }
