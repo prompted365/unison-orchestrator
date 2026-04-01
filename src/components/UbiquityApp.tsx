@@ -141,7 +141,7 @@ export const UbiquityApp = () => {
       if (startupDelayRef.current) clearTimeout(startupDelayRef.current);
       if (autoEmitRef.current) clearInterval(autoEmitRef.current);
     };
-  }, [simulation, signalEngine, storyMode.isActive]);
+  }, [simulation, signalEngine, storyMode.isPlaying]);
 
   useEffect(() => {
     if (simulation.agentSignals.size === 0) return;
