@@ -1066,11 +1066,42 @@ const StoryHighlight = ({ obj }: { obj: WorldObject }) => {
   );
 };
 
+// ─── Story Callout 3D (in-scene HTML labels) ─────────────────────────
+const StoryCallout3D = ({ callout }: { callout: StoryCallout }) => {
+  return (
+    <group position={callout.worldPos}>
+      <Html center distanceFactor={6} zIndexRange={[100, 50]}
+        style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+        <div style={{
+          background: 'hsla(240,10%,4%,0.85)',
+          border: `1px solid ${callout.color || '#00ffcc'}55`,
+          borderRadius: 6,
+          padding: '3px 10px',
+          fontSize: 11,
+          fontWeight: 600,
+          color: callout.color || '#00ffcc',
+          fontFamily: 'monospace',
+          letterSpacing: '0.04em',
+          boxShadow: `0 0 12px ${callout.color || '#00ffcc'}22`,
+          animation: 'fadeInUp 0.6s ease-out',
+        }}>
+          {callout.label}
+        </div>
+      </Html>
+      {/* Small marker dot */}
+      <mesh>
+        <sphereGeometry args={[0.03, 8, 8]} />
+        <meshBasicMaterial color={callout.color || '#00ffcc'} transparent opacity={0.8} />
+      </mesh>
+    </group>
+  );
+};
+
 // ─── Scene ───────────────────────────────────────────────────────────
 const Scene = ({
   mode, nodes, objects, modalPins, wavefronts, agentSignals,
   cockpitNodeId, onEnterCockpit, onExitCockpit, onCanvasClick, emittingAgentIds,
-  storyCamera, storyHighlightId
+  storyCamera, storyHighlightId, storyCallouts
 }: Omit<Canvas3DProps, 'effects'>) => {
   const hideLabels = !!storyCamera;
   const orchestratorNode = useMemo(() => nodes.find(n => n.type === 'orchestrator'), [nodes]);
