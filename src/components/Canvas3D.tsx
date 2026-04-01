@@ -432,13 +432,20 @@ const Object3D = ({ obj, mode, hideLabels }: { obj: WorldObject; mode: Communica
             onPointerOut={() => setHovered(false)}
           >
             <sphereGeometry args={[Math.max(w, h) / 2, 32, 32]} />
-            <meshStandardMaterial color="#0a0020" emissive="#7c3aed" emissiveIntensity={0.6} metalness={0.8} roughness={0.2} transparent opacity={0.9} />
+            <meshStandardMaterial color="#0a0020" emissive="#7c3aed" emissiveIntensity={0.9} metalness={0.85} roughness={0.15} transparent opacity={0.92} />
           </mesh>
+          {/* Outer event horizon glow */}
           <mesh>
-            <sphereGeometry args={[Math.max(w, h) / 2 + 0.03, 24, 24]} />
-            <meshBasicMaterial color="#9333ea" transparent opacity={0.08} side={THREE.BackSide} depthWrite={false} />
+            <sphereGeometry args={[Math.max(w, h) / 2 + 0.05, 32, 32]} />
+            <meshBasicMaterial color="#a855f7" transparent opacity={0.12} side={THREE.BackSide} depthWrite={false} />
           </mesh>
-          <pointLight color="#9333ea" intensity={1.5} distance={2.5} />
+          {/* Accretion disk */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[Math.max(w, h) / 2 + 0.06, Math.max(w, h) / 2 + 0.2, 48]} />
+            <meshBasicMaterial color="#c084fc" transparent opacity={0.15} side={THREE.DoubleSide} depthWrite={false} />
+          </mesh>
+          <pointLight color="#9333ea" intensity={3} distance={4} decay={1.5} />
+          <pointLight color="#c084fc" intensity={1} distance={2} decay={2} />
           <GravityWellRings size={obj.width + obj.height} position={[0, -height3D / 2 + 0.01, 0]} />
         </>
       )}
