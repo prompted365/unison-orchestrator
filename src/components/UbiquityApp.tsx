@@ -331,7 +331,8 @@ export const UbiquityApp = () => {
     <div className="h-screen flex flex-col overflow-hidden" style={{ position: 'relative' }}>
       {/* Compact Header */}
       <header className="flex items-center justify-between px-4 py-2 border-b border-primary/10 shrink-0 flex-wrap gap-2" style={{ position: 'relative', zIndex: 20, pointerEvents: 'auto' }}>
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <UbiquityLogo size={24} />
           <h1 className="text-xs sm:text-sm font-bold font-mono text-primary tracking-wider whitespace-nowrap">
             Constitution of Attention
           </h1>
