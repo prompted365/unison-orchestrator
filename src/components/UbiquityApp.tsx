@@ -377,7 +377,7 @@ export const UbiquityApp = () => {
       </header>
 
       {/* 3D Canvas — dominant viewport */}
-      <div className="flex-1 relative min-h-0">
+      <div className="flex-1 relative min-h-0" style={{ zIndex: 1 }}>
         <Canvas3D
           mode={mode}
           nodes={nodes}
