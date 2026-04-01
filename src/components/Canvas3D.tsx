@@ -718,121 +718,238 @@ const ConnectionLines = ({
   );
 };
 
-// ─── Procedural Terrain Mesh ─────────────────────────────────────────
-const Terrain = ({ mode }: { mode: CommunicationMode }) => {
+// ─── Dynamic Terrain Mesh (suspension bridge quilt over the deep) ────
+const Terrain = ({ mode, objects, wavefronts }: {
+  mode: CommunicationMode; objects: WorldObject[]; wavefronts: Wavefront[];
+}) => {
   const meshRef = useRef<THREE.Mesh>(null);
+  const gridRef = useRef<THREE.LineSegments>(null);
+  const majorGridRef = useRef<THREE.LineSegments>(null);
   const modeColor = MODE_COLORS[mode];
+  const SIZE = 20;
+  const SEGMENTS = 128;
 
+  // Store base heights for reference
+  const baseHeights = useMemo(() => {
+    const heights = new Float32Array((SEGMENTS + 1) * (SEGMENTS + 1));
+    for (let iz = 0; iz <= SEGMENTS; iz++) {
+      for (let ix = 0; ix <= SEGMENTS; ix++) {
+        const x = (ix / SEGMENTS - 0.5) * SIZE;
+        const z = (iz / SEGMENTS - 0.5) * SIZE;
+        heights[iz * (SEGMENTS + 1) + ix] = getTerrainHeight(x, z);
+      }
+    }
+    return heights;
+  }, []);
+
+  // Pre-compute mass world positions
+  const massAnchors = useMemo(() => objects.filter(o => o.type === 'mass').map(m => ({
+    wx: toWorld(m.x + m.width / 2 - CENTER_X),
+    wz: toWorld(m.y + m.height / 2 - CENTER_Y),
+    strength: (m.width + m.height) * 0.0015,
+  })), [objects]);
+
+  // Create geometries
   const geometry = useMemo(() => {
-    const size = 20;
-    const segments = 128;
-    const geo = new THREE.PlaneGeometry(size, size, segments, segments);
+    const geo = new THREE.PlaneGeometry(SIZE, SIZE, SEGMENTS, SEGMENTS);
     const pos = geo.attributes.position;
     const colors = new Float32Array(pos.count * 3);
-
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
-      const z = pos.getY(i); // PlaneGeometry uses Y as second axis before rotation
+      const z = pos.getY(i);
       const h = getTerrainHeight(x, z);
       pos.setZ(i, h);
-
-      // Color: darker in valleys, lighter on ridges
       const brightness = 0.02 + (h + 0.5) * 0.06;
       const tint = 0.015 + (h + 0.5) * 0.03;
       colors[i * 3] = tint;
       colors[i * 3 + 1] = tint * 0.8;
       colors[i * 3 + 2] = brightness;
     }
-
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     geo.computeVertexNormals();
     return geo;
   }, []);
 
-  // Grid overlay that follows terrain
+  const GRID_DIV = 40;
   const gridGeo = useMemo(() => {
-    const size = 20;
-    const divisions = 40;
-    const positions: number[] = [];
-
-    // X lines
-    for (let i = 0; i <= divisions; i++) {
-      const z = (i / divisions - 0.5) * size;
-      for (let j = 0; j < divisions; j++) {
-        const x1 = (j / divisions - 0.5) * size;
-        const x2 = ((j + 1) / divisions - 0.5) * size;
-        const y1 = getTerrainHeight(x1, z) + 0.005;
-        const y2 = getTerrainHeight(x2, z) + 0.005;
-        positions.push(x1, y1, z, x2, y2, z);
-      }
-    }
-    // Z lines
-    for (let i = 0; i <= divisions; i++) {
-      const x = (i / divisions - 0.5) * size;
-      for (let j = 0; j < divisions; j++) {
-        const z1 = (j / divisions - 0.5) * size;
-        const z2 = ((j + 1) / divisions - 0.5) * size;
-        const y1 = getTerrainHeight(x, z1) + 0.005;
-        const y2 = getTerrainHeight(x, z2) + 0.005;
-        positions.push(x, y1, z1, x, y2, z2);
-      }
-    }
-
+    const positions = new Float32Array(((GRID_DIV + 1) * GRID_DIV + (GRID_DIV + 1) * GRID_DIV) * 6);
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     return geo;
   }, []);
 
+  const MAJOR_DIV = 8;
+  const MAJOR_STEPS = 80;
+  const majorGridGeo = useMemo(() => {
+    const positions = new Float32Array(((MAJOR_DIV + 1) * MAJOR_STEPS + (MAJOR_DIV + 1) * MAJOR_STEPS) * 6);
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    return geo;
+  }, []);
+
+  // Animate terrain each frame — the plates breathe
+  useFrame(() => {
+    if (!meshRef.current) return;
+    const geo = meshRef.current.geometry;
+    const pos = geo.attributes.position;
+    const colorAttr = geo.attributes.color;
+    const time = Date.now() * 0.001;
+
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      const z = pos.getY(i); // plane Y = world Z before rotation
+      const ix = Math.round((x / SIZE + 0.5) * SEGMENTS);
+      const iz = Math.round((z / SIZE + 0.5) * SEGMENTS);
+      const baseH = baseHeights[Math.min(iz, SEGMENTS) * (SEGMENTS + 1) + Math.min(ix, SEGMENTS)] ?? 0;
+
+      // 1. Tectonic drift — slow deep undulations ("waters of the deep")
+      const tectonicA = Math.sin(x * 0.3 + time * 0.15) * Math.cos(z * 0.25 + time * 0.12) * 0.08;
+      const tectonicB = Math.sin(x * 0.7 - time * 0.08 + 1.5) * Math.sin(z * 0.5 + time * 0.1) * 0.04;
+      const tectonicC = Math.cos(x * 0.15 + z * 0.2 + time * 0.05) * 0.06;
+
+      // 2. Mass anchoring — invariant masses pin the terrain, creating tension
+      let massPin = 0;
+      let massTension = 0;
+      for (const anchor of massAnchors) {
+        const dist = Math.sqrt((x - anchor.wx) ** 2 + (z - anchor.wz) ** 2);
+        if (dist < 3) {
+          // Near masses, terrain is pulled DOWN (gravity well) and stabilized
+          const falloff = Math.exp(-dist * dist * 0.5);
+          massPin -= falloff * anchor.strength * 0.8;
+          // Suppress tectonic motion near anchors (they pin the bridge)
+          massTension += falloff;
+          // Add subtle orbital creaking around the anchor
+          massPin += Math.sin(dist * 4 - time * 0.8) * falloff * 0.015;
+        }
+      }
+      const tectonicDampen = Math.max(0, 1 - massTension * 2);
+
+      // 3. Signal pressure — wavefronts push the terrain surface
+      let signalPressure = 0;
+      for (const wf of wavefronts) {
+        const wfx = toWorld(wf.sourceX - CENTER_X);
+        const wfz = toWorld(wf.sourceY - CENTER_Y);
+        const wfr = toWorld(wf.radius);
+        const dist = Math.sqrt((x - wfx) ** 2 + (z - wfz) ** 2);
+        // Ripple at the wavefront edge
+        const edgeDist = Math.abs(dist - wfr);
+        if (edgeDist < 0.5) {
+          const ripple = Math.cos(edgeDist * Math.PI / 0.5) * 0.5 + 0.5;
+          signalPressure += ripple * wf.energy * 0.04;
+        }
+        // Subtle depression inside the wavefront
+        if (dist < wfr) {
+          signalPressure -= wf.energy * 0.008 * Math.exp(-dist * 0.5);
+        }
+      }
+
+      // Combine
+      const dynamicH = baseH
+        + (tectonicA + tectonicB + tectonicC) * tectonicDampen
+        + massPin
+        + signalPressure;
+
+      pos.setZ(i, dynamicH);
+
+      // Update vertex colors — valleys shift cooler, ridges warmer during tectonic motion
+      const shift = (dynamicH - baseH) * 0.3;
+      const brightness = 0.02 + (dynamicH + 0.5) * 0.06;
+      const tint = 0.015 + (dynamicH + 0.5) * 0.03;
+      colorAttr.setXYZ(i,
+        Math.max(0, tint + shift * 0.02),
+        Math.max(0, tint * 0.8 - Math.abs(shift) * 0.01),
+        Math.max(0, brightness - shift * 0.01)
+      );
+    }
+
+    pos.needsUpdate = true;
+    colorAttr.needsUpdate = true;
+    geo.computeVertexNormals();
+
+    // Update grid overlays to follow dynamic terrain
+    if (gridRef.current) {
+      const gridPos = gridRef.current.geometry.attributes.position;
+      let idx = 0;
+      for (let i = 0; i <= GRID_DIV; i++) {
+        const gz = (i / GRID_DIV - 0.5) * SIZE;
+        for (let j = 0; j < GRID_DIV; j++) {
+          const x1 = (j / GRID_DIV - 0.5) * SIZE;
+          const x2 = ((j + 1) / GRID_DIV - 0.5) * SIZE;
+          const y1 = sampleDynamicHeight(pos, x1, gz, SIZE, SEGMENTS) + 0.005;
+          const y2 = sampleDynamicHeight(pos, x2, gz, SIZE, SEGMENTS) + 0.005;
+          gridPos.setXYZ(idx++, x1, y1, gz);
+          gridPos.setXYZ(idx++, x2, y2, gz);
+        }
+      }
+      for (let i = 0; i <= GRID_DIV; i++) {
+        const gx = (i / GRID_DIV - 0.5) * SIZE;
+        for (let j = 0; j < GRID_DIV; j++) {
+          const z1 = (j / GRID_DIV - 0.5) * SIZE;
+          const z2 = ((j + 1) / GRID_DIV - 0.5) * SIZE;
+          const y1 = sampleDynamicHeight(pos, gx, z1, SIZE, SEGMENTS) + 0.005;
+          const y2 = sampleDynamicHeight(pos, gx, z2, SIZE, SEGMENTS) + 0.005;
+          gridPos.setXYZ(idx++, gx, y1, z1);
+          gridPos.setXYZ(idx++, gx, y2, z2);
+        }
+      }
+      gridPos.needsUpdate = true;
+    }
+
+    if (majorGridRef.current) {
+      const mgPos = majorGridRef.current.geometry.attributes.position;
+      let idx = 0;
+      for (let i = 0; i <= MAJOR_DIV; i++) {
+        const gz = (i / MAJOR_DIV - 0.5) * SIZE;
+        for (let j = 0; j < MAJOR_STEPS; j++) {
+          const x1 = (j / MAJOR_STEPS - 0.5) * SIZE;
+          const x2 = ((j + 1) / MAJOR_STEPS - 0.5) * SIZE;
+          mgPos.setXYZ(idx++, x1, sampleDynamicHeight(pos, x1, gz, SIZE, SEGMENTS) + 0.008, gz);
+          mgPos.setXYZ(idx++, x2, sampleDynamicHeight(pos, x2, gz, SIZE, SEGMENTS) + 0.008, gz);
+        }
+      }
+      for (let i = 0; i <= MAJOR_DIV; i++) {
+        const gx = (i / MAJOR_DIV - 0.5) * SIZE;
+        for (let j = 0; j < MAJOR_STEPS; j++) {
+          const z1 = (j / MAJOR_STEPS - 0.5) * SIZE;
+          const z2 = ((j + 1) / MAJOR_STEPS - 0.5) * SIZE;
+          mgPos.setXYZ(idx++, gx, sampleDynamicHeight(pos, gx, z1, SIZE, SEGMENTS) + 0.008, z1);
+          mgPos.setXYZ(idx++, gx, sampleDynamicHeight(pos, gx, z2, SIZE, SEGMENTS) + 0.008, z2);
+        }
+      }
+      mgPos.needsUpdate = true;
+    }
+  });
+
   return (
     <group>
-      {/* Terrain surface */}
       <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]}>
         <primitive object={geometry} attach="geometry" />
-        <meshStandardMaterial
-          vertexColors
-          metalness={0.6}
-          roughness={0.8}
-          side={THREE.DoubleSide}
-        />
+        <meshStandardMaterial vertexColors metalness={0.6} roughness={0.8} side={THREE.DoubleSide} />
       </mesh>
-
-      {/* Grid overlay following terrain contours */}
-      <lineSegments>
+      <lineSegments ref={gridRef}>
         <primitive object={gridGeo} attach="geometry" />
         <lineBasicMaterial color={modeColor} transparent opacity={0.08} />
       </lineSegments>
-
-      {/* Stronger grid at major divisions */}
-      <lineSegments>
-        <primitive object={useMemo(() => {
-          const size = 20;
-          const divisions = 8;
-          const positions: number[] = [];
-          for (let i = 0; i <= divisions; i++) {
-            const z = (i / divisions - 0.5) * size;
-            for (let j = 0; j < 80; j++) {
-              const x1 = (j / 80 - 0.5) * size;
-              const x2 = ((j + 1) / 80 - 0.5) * size;
-              positions.push(x1, getTerrainHeight(x1, z) + 0.008, z, x2, getTerrainHeight(x2, z) + 0.008, z);
-            }
-          }
-          for (let i = 0; i <= divisions; i++) {
-            const x = (i / divisions - 0.5) * size;
-            for (let j = 0; j < 80; j++) {
-              const z1 = (j / 80 - 0.5) * size;
-              const z2 = ((j + 1) / 80 - 0.5) * size;
-              positions.push(x, getTerrainHeight(x, z1) + 0.008, z1, x, getTerrainHeight(x, z2) + 0.008, z2);
-            }
-          }
-          const geo = new THREE.BufferGeometry();
-          geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-          return geo;
-        }, [])} attach="geometry" />
+      <lineSegments ref={majorGridRef}>
+        <primitive object={majorGridGeo} attach="geometry" />
         <lineBasicMaterial color={modeColor} transparent opacity={0.15} />
       </lineSegments>
     </group>
   );
 };
+
+/** Sample height from the dynamic (already-displaced) plane geometry */
+function sampleDynamicHeight(
+  pos: THREE.BufferAttribute | THREE.InterleavedBufferAttribute, worldX: number, worldZ: number,
+  size: number, segments: number
+): number {
+  const fx = (worldX / size + 0.5) * segments;
+  const fz = (worldZ / size + 0.5) * segments;
+  const ix = Math.min(Math.max(Math.round(fx), 0), segments);
+  const iz = Math.min(Math.max(Math.round(fz), 0), segments);
+  const idx = iz * (segments + 1) + ix;
+  return pos.getZ(idx);
+}
 
 // ─── Cockpit Camera ──────────────────────────────────────────────────
 const CockpitCamera = ({ targetNode, onExit }: { targetNode: Node; onExit: () => void }) => {
@@ -966,7 +1083,7 @@ const Scene = ({
       <directionalLight position={[5, 8, 3]} intensity={0.5} />
       <directionalLight position={[-3, 5, -4]} intensity={0.15} color="#6677aa" />
       <Stars radius={50} depth={30} count={2000} factor={3} fade speed={0.5} />
-      <Terrain mode={mode} />
+      <Terrain mode={mode} objects={objects} wavefronts={wavefronts} />
 
       {storyCamera ? (
         <StoryCameraController storyCamera={storyCamera} />
