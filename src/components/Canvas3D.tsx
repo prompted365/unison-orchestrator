@@ -135,6 +135,7 @@ const Node3D = ({
         position={[0, radius + 0.2, 0]}
         center
         distanceFactor={8}
+        zIndexRange={[12, 0]}
         style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}
       >
         <div style={{
