@@ -136,20 +136,39 @@ export interface Effect {
   createdAt: number;
 }
 
+// ═══ [CE] CIVIL ENGINEER ═══════════════════════════════════════
+// Canonical: Wavefront — the spatial propagation shell of a signal emission.
+//   Maps to the CGG signal lifecycle: emission → propagation → reception → decay.
+//   Energy follows inverse-square + absorption (acoustic/light) or near-lossless (gravity).
+// Constraint: velocity in px/s (scaled, not real). See usePhysics for real-world mapping:
+//   acoustic=200 px/s (~4s to cross 800px), light=4000 px/s (~0.2s), gravity=800 px/s (~1s)
+// Constraint: isBeam=true creates directional ray (mirror reflections) — translates along
+//   angle instead of expanding radially. Used for Specular Surface interactions only.
+// Gap D4: No distinction between broadcast wavefront and Astragals point-to-point delivery.
+//   Astragals should render as sealed directional tubes, not expanding spheres.
+// ════════════════════════════════════════════════════════════════
+// ═══ [VG] VIDEOGRAPHER ═════════════════════════════════════════
+// Acoustic: warm wireframe sphere (hue 20-35°), orange pressure glow at origin
+// Light: bright white leading-edge shell + cyan inner volume, flash bloom at origin
+// Gravity: distorted wireframe sphere with sub-bass vertex displacement, inner plasma
+//   core, equatorial shockwave ring, purple bloom. Terrain deforms under passage.
+// Beam: tight cylinder with bright core + diffuse outer glow — reads as "directed energy"
+// Legibility: Mode identifiable by color alone. Energy readable from opacity.
+// ════════════════════════════════════════════════════════════════
 export interface Wavefront {
   id: string;
-  sourceX: number;
+  sourceX: number;  // [CE] 2D pixel coords — emission origin
   sourceY: number;
-  radius: number;
-  energy: number;
-  velocity: number; // px per second (scaled)
+  radius: number;   // [CE] expanding radius in px — drives 3D sphere scale via SCALE=0.02
+  energy: number;   // [CE] 0-1, decays per physics model. Wavefront pruned at MIN_ENERGY=0.01
+  velocity: number; // [CE] px/s (normalized, not physical). See usePhysics PHYSICS_PROFILES
   mode: CommunicationMode;
-  isEcho: boolean;
-  isBeam?: boolean; // directional beam (mirror reflection) — does not expand radially
-  parentId?: string;
-  angle?: number; // for directional wavefronts (reflections)
-  createdAt: number;
-  hasSpawnedEchoes?: Set<string>; // track which objects already spawned echoes
+  isEcho: boolean;   // [CE] spawned by wall reflection (acoustic only)
+  isBeam?: boolean;  // [CE] directional beam from mirror reflection — translates, doesn't expand
+  parentId?: string; // [CE] lineage — which wavefront spawned this echo/reflection
+  angle?: number;    // [CE] radians, beam travel direction
+  createdAt: number; // [CE] wall-clock ms — not governance tic (see D9)
+  hasSpawnedEchoes?: Set<string>; // [CE] prevents duplicate echo spawning per object
 }
 
 export interface AgentSignalState {
