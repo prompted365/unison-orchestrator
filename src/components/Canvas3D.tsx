@@ -228,7 +228,7 @@ const GravityWellRings = ({ size, position }: { size: number; position: [number,
 };
 
 // ─── 3D World Object (wall / lens / mirror / mass) ───────────────────
-const Object3D = ({ obj, mode }: { obj: WorldObject; mode: CommunicationMode }) => {
+const Object3D = ({ obj, mode, hideLabels }: { obj: WorldObject; mode: CommunicationMode; hideLabels?: boolean }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
   const w = toWorld(obj.width);
