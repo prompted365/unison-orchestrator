@@ -32,16 +32,35 @@
 // ════════════════════════════════════════════════════════════════
 export type CommunicationMode = 'acoustic' | 'light' | 'gravity';
 
+// ═══ [CE] CIVIL ENGINEER ═══════════════════════════════════════
+// Canonical: Node — maps to entity_ontology.entity_kind + actor subgraph
+//   'orchestrator' = Mogul (actor_mode: autonomous), estate-level conductor
+//   'agent' = any actor subgraph member (ghost_chorus, economy_whisper, etc.)
+// Gap D1: Missing `standing` (citizen|resident|ambassador|guest|…) — determines
+//   access scope and visual ring in Talos. Currently all agents treated equally.
+// Gap D2: Missing `actor_mode` (none|invoked|delegated|autonomous|collective) —
+//   a delegated ephemeral worker looks identical to an autonomous citizen.
+// Gap D3: Missing `inbox` queue depth — agents have no visible inbox geometry.
+// Constraint: x,y are 2D pixel coords in 800×560 canvas space.
+//   Talos world transform: worldX = (x - 400) * 0.02, worldZ = (y - 280) * 0.02
+// ════════════════════════════════════════════════════════════════
+// ═══ [VG] VIDEOGRAPHER ═════════════════════════════════════════
+// Encodes: `strength` drives SNR-based hue shift (red→yellow→cyan)
+// Encodes: `actorGroup` determines geometry (icosahedron=ghost, octahedron=epitaph, sphere=default)
+// Legibility: Group identity readable from geometry alone; SNR from color temperature
+// Talos: Sphere radius 0.12-0.20 world units ≈ 6-10px at default camera. Scale to
+//   Talos building proportions: 1 world unit ≈ ~3m real-world equivalent.
+// ════════════════════════════════════════════════════════════════
 export interface Node {
   id: string;
   type: 'orchestrator' | 'agent';
-  x: number;
-  y: number;
-  capabilities: string[];
+  x: number;  // [CE] 2D pixel x in 800px canvas — not world coords
+  y: number;  // [CE] 2D pixel y in 560px canvas — not world coords
+  capabilities: string[];  // [CE] maps to actor_subgraph capabilities from ontology
   load: number;
   lastSNR: number;
-  strength?: 'weak' | 'medium' | 'strong';
-  actorGroup?: string;
+  strength?: 'weak' | 'medium' | 'strong';  // [VG] drives color encoding
+  actorGroup?: string;   // [CE] canonical: ghost_chorus | economy_whisper | ecotone_gate | drift_tracker | epitaph_extractor
   actorIndex?: number;
 }
 
