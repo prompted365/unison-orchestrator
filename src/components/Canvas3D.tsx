@@ -1125,7 +1125,7 @@ const Scene = ({
       />
 
       {/* Warm hearth glow at center */}
-      <pointLight position={[0, 3, 0]} intensity={0.3} color="#ff9944" distance={20} decay={2} />
+      <pointLight position={[0, 3, 0]} intensity={0.6} color="#ff9944" distance={20} decay={2} />
       <Stars radius={50} depth={30} count={2000} factor={3} fade speed={0.5} />
       <Terrain mode={mode} objects={objects} wavefronts={wavefronts} />
 
