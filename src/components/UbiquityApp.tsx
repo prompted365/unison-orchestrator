@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { ModeSelector } from "./ModeSelector";
+import { UbiquityLogo } from "./UbiquityLogo";
 import { Canvas3D } from "./Canvas3D";
 import { Controls } from "./Controls";
 import { ManifoldDashboard } from "./ManifoldDashboard";
