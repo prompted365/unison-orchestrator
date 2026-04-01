@@ -251,7 +251,7 @@ const Object3D = ({ obj, mode, hideLabels }: { obj: WorldObject; mode: Communica
 
   return (
     <group position={[px, height3D / 2, pz]}>
-      {/* Permission Gate: concrete-rough box + wireframe overlay */}
+      {/* Attenuation Boundary: graduated semi-transparent energy barrier */}
       {obj.type === 'wall' && (
         <>
           <mesh ref={meshRef}
@@ -259,54 +259,86 @@ const Object3D = ({ obj, mode, hideLabels }: { obj: WorldObject; mode: Communica
             onPointerOut={() => setHovered(false)}
           >
             <boxGeometry args={[w, height3D, h]} />
-            <meshStandardMaterial color="#3a3a3a" emissive={MODE_COLORS[mode]} emissiveIntensity={0.08} metalness={0.05} roughness={0.92} />
+            <meshStandardMaterial
+              color="#1a1a2e"
+              emissive={MODE_COLORS[mode]}
+              emissiveIntensity={0.15}
+              metalness={0.1}
+              roughness={0.7}
+              transparent
+              opacity={0.55}
+            />
           </mesh>
+          {/* Inner energy glow */}
+          <mesh>
+            <boxGeometry args={[w * 0.95, height3D * 0.8, h * 0.95]} />
+            <meshBasicMaterial color={MODE_COLORS[mode]} transparent opacity={0.08} depthWrite={false} />
+          </mesh>
+          {/* Wireframe shell */}
           <mesh>
             <boxGeometry args={[w * 1.005, height3D * 1.01, h * 1.005]} />
-            <meshBasicMaterial color={MODE_COLORS[mode]} wireframe transparent opacity={0.15} />
+            <meshBasicMaterial color={MODE_COLORS[mode]} wireframe transparent opacity={0.2} />
           </mesh>
+          {/* Graduated muffling bands */}
+          {[0.3, 0.6, 0.9].map((offset, i) => (
+            <mesh key={i} position={[0, (offset - 0.5) * height3D * 0.8, 0]}>
+              <boxGeometry args={[w * 1.02, 0.01, h * 1.02]} />
+              <meshBasicMaterial color={MODE_COLORS[mode]} transparent opacity={0.3 - i * 0.08} depthWrite={false} />
+            </mesh>
+          ))}
         </>
       )}
 
-      {/* Observability Lens: torus + glass disc */}
+      {/* Observability Lens: glass disc with prismatic ring */}
       {obj.type === 'lens' && (
         <>
           <mesh ref={meshRef}
             onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
             onPointerOut={() => setHovered(false)}
           >
-            <torusGeometry args={[Math.max(w, h) / 2, 0.04, 12, 32]} />
-            <meshStandardMaterial color="#4ecdc4" emissive="#4ecdc4" emissiveIntensity={0.3} metalness={0.6} roughness={0.2} transparent opacity={0.7} />
+            <torusGeometry args={[Math.max(w, h) / 2, 0.04, 16, 32]} />
+            <meshStandardMaterial color="#4ecdc4" emissive="#4ecdc4" emissiveIntensity={0.4} metalness={0.7} roughness={0.15} transparent opacity={0.75} />
           </mesh>
+          {/* Glass fill */}
           <mesh rotation={[-Math.PI / 2, 0, 0]}>
             <circleGeometry args={[Math.max(w, h) / 2 - 0.02, 32]} />
-            <meshStandardMaterial color="#66eeee" emissive="#4ecdc4" emissiveIntensity={0.05} metalness={0.9} roughness={0.1} transparent opacity={0.12} side={THREE.DoubleSide} />
+            <meshStandardMaterial color="#88ffee" emissive="#4ecdc4" emissiveIntensity={0.06} metalness={0.95} roughness={0.05} transparent opacity={0.1} side={THREE.DoubleSide} />
           </mesh>
+          {/* Focus point light */}
+          <pointLight color="#4ecdc4" intensity={0.8} distance={1.5} />
         </>
       )}
 
-      {/* Mirror: reflective plane + surface normal indicator */}
+      {/* Specular Surface: polished mirror with reflection shimmer */}
       {obj.type === 'mirror' && (
         <group rotation={[0, surfAngle, 0]}>
           <mesh ref={meshRef}
             onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
             onPointerOut={() => setHovered(false)}
           >
-            <boxGeometry args={[w, 0.02, h]} />
-            <meshStandardMaterial color="#d0e8f8" emissive="#8ecae6" emissiveIntensity={0.15} metalness={0.95} roughness={0.05} />
+            <boxGeometry args={[w, 0.025, h]} />
+            <meshStandardMaterial color="#e8f4fd" emissive="#8ecae6" emissiveIntensity={0.2} metalness={0.98} roughness={0.02} />
           </mesh>
-          <mesh position={[0, 0.15, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.008, 0.008, 0.3, 6]} />
-            <meshBasicMaterial color="#ffffff" transparent opacity={0.5} />
+          {/* Reflective shimmer plane */}
+          <mesh position={[0, 0.015, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[w * 0.9, h * 0.9]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.06} depthWrite={false} side={THREE.DoubleSide} />
           </mesh>
-          <mesh position={[0, 0.31, 0]} rotation={[Math.PI, 0, 0]}>
-            <coneGeometry args={[0.02, 0.05, 6]} />
-            <meshBasicMaterial color="#ffffff" transparent opacity={0.5} />
+          {/* Surface normal indicator */}
+          <mesh position={[0, 0.18, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.006, 0.006, 0.35, 6]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.4} />
           </mesh>
+          <mesh position={[0, 0.36, 0]} rotation={[Math.PI, 0, 0]}>
+            <coneGeometry args={[0.018, 0.045, 6]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.4} />
+          </mesh>
+          {/* Edge glow */}
+          <pointLight color="#88ccff" intensity={0.5} distance={1} />
         </group>
       )}
 
-      {/* Invariant Mass: dark sphere + concentric gravity well rings */}
+      {/* Invariant Mass: dense sphere with event horizon + gravity wells */}
       {obj.type === 'mass' && (
         <>
           <mesh ref={meshRef}
@@ -314,8 +346,15 @@ const Object3D = ({ obj, mode, hideLabels }: { obj: WorldObject; mode: Communica
             onPointerOut={() => setHovered(false)}
           >
             <sphereGeometry args={[Math.max(w, h) / 2, 32, 32]} />
-            <meshStandardMaterial color="#1a0033" emissive="#6b21a8" emissiveIntensity={0.5} metalness={0.7} roughness={0.3} transparent opacity={0.85} />
+            <meshStandardMaterial color="#0a0020" emissive="#7c3aed" emissiveIntensity={0.6} metalness={0.8} roughness={0.2} transparent opacity={0.9} />
           </mesh>
+          {/* Event horizon shell */}
+          <mesh>
+            <sphereGeometry args={[Math.max(w, h) / 2 + 0.03, 24, 24]} />
+            <meshBasicMaterial color="#9333ea" transparent opacity={0.08} side={THREE.BackSide} depthWrite={false} />
+          </mesh>
+          {/* Core glow */}
+          <pointLight color="#9333ea" intensity={1.5} distance={2.5} />
           <GravityWellRings size={obj.width + obj.height} position={[0, -height3D / 2 + 0.01, 0]} />
         </>
       )}
