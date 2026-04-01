@@ -272,8 +272,13 @@ export const UbiquityApp = () => {
   }, [mode]);
 
   const handleDropPin = useCallback(() => {
-    const x = Math.random() * 600 + 100;
-    const y = Math.random() * 400 + 80;
+    // Epitaphs originate from agent nodes — pick a random agent
+    const agents = nodes.filter(n => n.type === 'agent');
+    const source = agents.length > 0
+      ? agents[Math.floor(Math.random() * agents.length)]
+      : null;
+    const x = source ? source.x + (Math.random() - 0.5) * 30 : Math.random() * 600 + 100;
+    const y = source ? source.y + (Math.random() - 0.5) * 30 : Math.random() * 400 + 80;
     const pinData = getModalPinData(mode);
     const newPin: ModalPin = {
       id: `pin-${Date.now()}`,
