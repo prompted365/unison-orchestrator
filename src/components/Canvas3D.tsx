@@ -827,7 +827,7 @@ const Scene = ({
 
       {/* World objects */}
       {objects.map(obj => (
-        <Object3D key={obj.id} obj={obj} mode={mode} />
+        <Object3D key={obj.id} obj={obj} mode={mode} hideLabels={hideLabels} />
       ))}
 
       {/* Nodes */}
@@ -840,12 +840,13 @@ const Scene = ({
           onEnterCockpit={onEnterCockpit}
           isCockpitTarget={node.id === cockpitNodeId}
           isEmitting={emittingAgentIds?.includes(node.id)}
+          hideLabels={hideLabels}
         />
       ))}
 
       {/* Modal pins */}
       {modalPins.map(pin => (
-        <Pin3D key={pin.id} pin={pin} />
+        <Pin3D key={pin.id} pin={pin} hideLabels={hideLabels} />
       ))}
 
       {/* Story highlight */}
