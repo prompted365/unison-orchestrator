@@ -533,26 +533,77 @@ const GravityWavefrontSphere = ({ r, position, opacity }: {
   objects: WorldObject[]; px: number; pz: number;
 }) => {
   const meshRef = useRef<THREE.Mesh>(null);
+  const innerRef = useRef<THREE.Mesh>(null);
   const geoRef = useRef<THREE.SphereGeometry>(null);
+  const innerGeoRef = useRef<THREE.SphereGeometry>(null);
+  const shockRef = useRef<THREE.Mesh>(null);
+
   useFrame(() => {
     if (!geoRef.current || !meshRef.current) return;
     const geo = geoRef.current;
     const pos = geo.attributes.position;
     const time = Date.now() * 0.001;
+
+    // Heavy, churning displacement — the 808 DROP
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
       const len = Math.sqrt(x * x + y * y + z * z) || 1;
-      const ripple = Math.sin(len * 8 - time * 2) * 0.03 * opacity;
+      // Deep sub-bass ripple + harmonic crunch
+      const subBass = Math.sin(len * 4 - time * 3) * 0.08 * opacity;
+      const crunch = Math.sin(len * 12 - time * 5) * 0.025 * opacity;
+      const wobble = Math.sin(len * 2 + time * 1.5 + y * 3) * 0.04 * opacity;
       const scale = r / len;
-      pos.setXYZ(i, x * scale + (x / len) * ripple, y * scale + (y / len) * ripple, z * scale + (z / len) * ripple);
+      const disp = subBass + crunch + wobble;
+      pos.setXYZ(i,
+        x * scale + (x / len) * disp,
+        y * scale + (y / len) * disp * 1.3,
+        z * scale + (z / len) * disp
+      );
     }
     pos.needsUpdate = true;
+
+    // Inner plasma core
+    if (innerGeoRef.current && innerRef.current) {
+      const ipos = innerGeoRef.current.attributes.position;
+      const innerR = r * 0.6;
+      for (let i = 0; i < ipos.count; i++) {
+        const x = ipos.getX(i), y = ipos.getY(i), z = ipos.getZ(i);
+        const len = Math.sqrt(x * x + y * y + z * z) || 1;
+        const pulse = Math.sin(len * 6 + time * 4) * 0.05 * opacity;
+        const sc = innerR / len;
+        ipos.setXYZ(i, x * sc + (x / len) * pulse, y * sc + (y / len) * pulse, z * sc + (z / len) * pulse);
+      }
+      ipos.needsUpdate = true;
+    }
+
+    // Shockwave ring at equator
+    if (shockRef.current) {
+      const pulse = 1 + Math.sin(time * 6) * 0.15;
+      shockRef.current.scale.set(r * pulse, r * pulse, r * pulse);
+      (shockRef.current.material as THREE.MeshBasicMaterial).opacity = opacity * 0.35 * (0.5 + Math.sin(time * 4) * 0.5);
+    }
   });
+
   return (
-    <mesh ref={meshRef} position={position}>
-      <sphereGeometry ref={geoRef} args={[r, 24, 16]} />
-      <meshBasicMaterial color="#9333ea" transparent opacity={opacity * 0.5} side={THREE.DoubleSide} depthWrite={false} wireframe />
-    </mesh>
+    <group position={position}>
+      {/* Outer distorted shell */}
+      <mesh ref={meshRef}>
+        <sphereGeometry ref={geoRef} args={[r, 32, 24]} />
+        <meshBasicMaterial color="#7c3aed" transparent opacity={opacity * 0.45} side={THREE.DoubleSide} depthWrite={false} wireframe />
+      </mesh>
+      {/* Inner plasma volume */}
+      <mesh ref={innerRef}>
+        <sphereGeometry ref={innerGeoRef} args={[r * 0.6, 24, 16]} />
+        <meshBasicMaterial color="#a855f7" transparent opacity={opacity * 0.12} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+      {/* Equatorial shockwave ring */}
+      <mesh ref={shockRef} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.9, 1.0, 48]} />
+        <meshBasicMaterial color="#c084fc" transparent opacity={opacity * 0.3} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+      {/* Gravity light — purple bloom */}
+      <pointLight color="#9333ea" intensity={opacity * 6} distance={r * 3 + 1} decay={2} />
+    </group>
   );
 };
 
