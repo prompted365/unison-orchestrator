@@ -1081,7 +1081,7 @@ const Scene = ({
   return (
     <>
       {/* Hemisphere ambient — warm sky, cool ground */}
-      <hemisphereLight args={['#ffe8c8', '#0a0a2a', 0.25]} />
+      <hemisphereLight args={['#ffe8c8', '#0a0a2a', 0.6]} />
 
       {/* The Sun — distant star mesh */}
       <group position={[80, 60, -40]}>
