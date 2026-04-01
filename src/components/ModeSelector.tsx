@@ -3,9 +3,10 @@ import { CommunicationMode } from "../types";
 interface ModeSelectorProps {
   mode: CommunicationMode;
   onModeChange: (mode: CommunicationMode) => void;
+  disabled?: boolean;
 }
 
-export const ModeSelector = ({ mode, onModeChange }: ModeSelectorProps) => {
+export const ModeSelector = ({ mode, onModeChange, disabled }: ModeSelectorProps) => {
   const modes = [
     { id: 'acoustic' as const, label: 'Acoustic', className: 'acoustic' },
     { id: 'light' as const, label: 'Light', className: 'light' },
@@ -17,8 +18,9 @@ export const ModeSelector = ({ mode, onModeChange }: ModeSelectorProps) => {
       {modes.map(({ id, label, className }) => (
         <button
           key={id}
-          className={`mode-pill ${className} ${mode === id ? 'active' : ''}`}
-          onClick={() => onModeChange(id)}
+          className={`mode-pill ${className} ${mode === id ? 'active' : ''} ${disabled ? 'opacity-40 cursor-not-allowed grayscale' : ''}`}
+          onClick={() => !disabled && onModeChange(id)}
+          disabled={disabled}
         >
           {label}
         </button>
