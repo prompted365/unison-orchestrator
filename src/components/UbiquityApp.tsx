@@ -407,7 +407,7 @@ export const UbiquityApp = () => {
       </div>
 
       {/* Controls + Explanation */}
-      <div className="shrink-0 px-4 py-3 space-y-2 border-t border-primary/10">
+      <div className="shrink-0 px-4 py-3 space-y-2 border-t border-primary/10" style={{ position: 'relative', zIndex: 20, pointerEvents: 'auto' }}>
         <Controls
           onBroadcast={handleBroadcast}
           onAddObject={handleAddObject}
