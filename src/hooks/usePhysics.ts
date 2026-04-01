@@ -108,7 +108,11 @@ export const usePhysics = (mode: CommunicationMode) => {
       );
     },
 
-    // Compute specular reflection point off a wall for echo wavefronts
+    // ═══ [CE] Echo mechanics — specular reflection for acoustic band ═══
+    // Canonical: walls produce echo wavefronts (reduced energy) when the primary
+    // wavefront's radius reaches the wall distance. Mirror-source approximation.
+    // Only acoustic mode produces echoes — this is a physical property of sound.
+    // ═══ [VG] Echo wavefronts render as dimmer wireframe spheres (opacity * 0.45) ═══
     computeEchoSources: (sourceX: number, sourceY: number, objects: WorldObject[]): Array<{ x: number; y: number; energy: number; objectId: string }> => {
       if (mode !== 'acoustic') return [];
       return objects
@@ -116,7 +120,6 @@ export const usePhysics = (mode: CommunicationMode) => {
         .map(wall => {
           const cx = wall.x + wall.width / 2;
           const cy = wall.y + wall.height / 2;
-          // Mirror source across wall center
           const dx = cx - sourceX;
           const dy = cy - sourceY;
           const dist = Math.sqrt(dx * dx + dy * dy);
