@@ -1079,9 +1079,41 @@ const Scene = ({
 
   return (
     <>
-      <ambientLight intensity={0.2} />
-      <directionalLight position={[5, 8, 3]} intensity={0.5} />
-      <directionalLight position={[-3, 5, -4]} intensity={0.15} color="#6677aa" />
+      {/* Warm ambient fill — sunrise tone, omnidirectional */}
+      <hemisphereLight args={['#ffd9a0', '#1a1a3e', 0.35]} />
+
+      {/* Cool key light — directed moonlight with shadow */}
+      <directionalLight
+        position={[8, 12, 5]}
+        intensity={0.7}
+        color="#aaccff"
+        castShadow
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-camera-far={50}
+        shadow-camera-left={-15}
+        shadow-camera-right={15}
+        shadow-camera-top={15}
+        shadow-camera-bottom={-15}
+        shadow-bias={-0.002}
+      />
+
+      {/* Warm fill from opposite side — low angle golden hour */}
+      <directionalLight
+        position={[-6, 4, -8]}
+        intensity={0.3}
+        color="#ffaa55"
+      />
+
+      {/* Cool rim/back light for terrain edge definition */}
+      <directionalLight
+        position={[0, 2, -12]}
+        intensity={0.15}
+        color="#6688cc"
+      />
+
+      {/* Warm point light near center to give terrain a hearth glow */}
+      <pointLight position={[0, 3, 0]} intensity={0.4} color="#ff9944" distance={20} decay={2} />
       <Stars radius={50} depth={30} count={2000} factor={3} fade speed={0.5} />
       <Terrain mode={mode} objects={objects} wavefronts={wavefronts} />
 
