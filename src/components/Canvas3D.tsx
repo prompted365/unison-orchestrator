@@ -44,13 +44,14 @@ interface Canvas3DProps {
 
 // ─── 3D Node (sphere + label) ────────────────────────────────────────
 const Node3D = ({
-  node, mode, signal, onEnterCockpit, isCockpitTarget, isEmitting
+  node, mode, signal, onEnterCockpit, isCockpitTarget, isEmitting, hideLabels
 }: {
   node: Node; mode: CommunicationMode;
   signal?: AgentSignalState;
   onEnterCockpit: (id: string) => void;
   isCockpitTarget: boolean;
   isEmitting?: boolean;
+  hideLabels?: boolean;
 }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const emitRingRef = useRef<THREE.Mesh>(null);
@@ -130,45 +131,48 @@ const Node3D = ({
         </mesh>
       )}
 
-      {/* Label always visible */}
-      <Html
-        position={[0, radius + 0.2, 0]}
-        center
-        distanceFactor={8}
-        zIndexRange={[12, 0]}
-        style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}
-      >
-        <div style={{
-          background: 'hsla(240,10%,4%,0.85)',
-          border: '1px solid hsla(180,100%,67%,0.3)',
-          borderRadius: 6,
-          padding: '2px 8px',
-          fontSize: 10,
-          color: '#e0e0e0',
-          fontFamily: 'monospace',
-        }}>
-          {isOrch ? 'Conductor' : (node.actorGroup ? ACTOR_GROUP_LABELS[node.actorGroup] || node.actorGroup : node.id)}
-        </div>
-      </Html>
+      {/* Label — hidden during story mode */}
+      {!hideLabels && (
+        <Html
+          position={[0, radius + 0.2, 0]}
+          center
+          distanceFactor={8}
+          zIndexRange={[5, 0]}
+          style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}
+        >
+          <div style={{
+            background: 'hsla(240,10%,4%,0.75)',
+            border: '1px solid hsla(180,100%,67%,0.2)',
+            borderRadius: 4,
+            padding: '1px 6px',
+            fontSize: 9,
+            color: '#c0c0c0',
+            fontFamily: 'monospace',
+            letterSpacing: '0.03em',
+          }}>
+            {isOrch ? 'Conductor' : (node.actorGroup ? ACTOR_GROUP_LABELS[node.actorGroup] || node.actorGroup : node.id)}
+          </div>
+        </Html>
+      )}
 
       {/* Hover tooltip */}
-      {hovered && (
-        <Html position={[0, radius + 0.55, 0]} center distanceFactor={6} zIndexRange={[14, 0]}>
+      {hovered && !hideLabels && (
+        <Html position={[0, radius + 0.55, 0]} center distanceFactor={6} zIndexRange={[8, 0]}>
           <div style={{
             background: 'hsla(240,10%,6%,0.95)',
-            border: '1px solid hsla(180,100%,67%,0.5)',
-            borderRadius: 8,
-            padding: '8px 12px',
-            fontSize: 11,
+            border: '1px solid hsla(180,100%,67%,0.4)',
+            borderRadius: 6,
+            padding: '6px 10px',
+            fontSize: 10,
             color: '#f0f0f0',
             fontFamily: 'monospace',
-            maxWidth: 220,
+            maxWidth: 200,
             whiteSpace: 'pre-wrap',
-            boxShadow: '0 0 20px hsla(180,100%,67%,0.3)',
+            boxShadow: '0 0 12px hsla(180,100%,67%,0.2)',
             pointerEvents: 'none',
           }}>
             {tooltip}
-            <div style={{ fontSize: 9, color: '#888', marginTop: 4 }}>Double-click → Cockpit</div>
+            <div style={{ fontSize: 8, color: '#888', marginTop: 3 }}>Double-click → Cockpit</div>
           </div>
         </Html>
       )}
@@ -224,7 +228,7 @@ const GravityWellRings = ({ size, position }: { size: number; position: [number,
 };
 
 // ─── 3D World Object (wall / lens / mirror / mass) ───────────────────
-const Object3D = ({ obj, mode }: { obj: WorldObject; mode: CommunicationMode }) => {
+const Object3D = ({ obj, mode, hideLabels }: { obj: WorldObject; mode: CommunicationMode; hideLabels?: boolean }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
   const w = toWorld(obj.width);
@@ -317,20 +321,22 @@ const Object3D = ({ obj, mode }: { obj: WorldObject; mode: CommunicationMode }) 
       )}
 
       {/* Label */}
-      <Html position={[0, height3D / 2 + 0.25, 0]} center distanceFactor={10} style={{ pointerEvents: 'none' }}>
-        <div style={{
-          background: 'hsla(240,10%,4%,0.8)', border: '1px solid hsla(0,0%,50%,0.25)',
-          borderRadius: 5, padding: '2px 6px', fontSize: 9, color: '#ccc', fontFamily: 'monospace', whiteSpace: 'nowrap',
-        }}>
-          {label}
-        </div>
-      </Html>
-
-      {hovered && (
-        <Html position={[0, height3D / 2 + 0.5, 0]} center distanceFactor={6}>
+      {!hideLabels && (
+        <Html position={[0, height3D / 2 + 0.25, 0]} center distanceFactor={10} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
           <div style={{
-            background: 'hsla(240,10%,6%,0.95)', border: '1px solid hsla(0,0%,60%,0.4)',
-            borderRadius: 8, padding: '6px 10px', fontSize: 10, color: '#eee', fontFamily: 'monospace', pointerEvents: 'none',
+            background: 'hsla(240,10%,4%,0.7)', border: '1px solid hsla(0,0%,50%,0.2)',
+            borderRadius: 4, padding: '1px 5px', fontSize: 8, color: '#aaa', fontFamily: 'monospace', whiteSpace: 'nowrap',
+          }}>
+            {label}
+          </div>
+        </Html>
+      )}
+
+      {hovered && !hideLabels && (
+        <Html position={[0, height3D / 2 + 0.5, 0]} center distanceFactor={6} zIndexRange={[8, 0]}>
+          <div style={{
+            background: 'hsla(240,10%,6%,0.95)', border: '1px solid hsla(0,0%,60%,0.3)',
+            borderRadius: 6, padding: '5px 8px', fontSize: 9, color: '#ddd', fontFamily: 'monospace', pointerEvents: 'none',
           }}>
             {label} ({obj.width}×{obj.height}px)
           </div>
@@ -468,7 +474,7 @@ const GravityWavefrontSphere = ({ r, position, opacity, objects, px, pz }: {
 };
 
 // ─── 3D Modal Pin (floating card) ────────────────────────────────────
-const Pin3D = ({ pin }: { pin: ModalPin }) => {
+const Pin3D = ({ pin, hideLabels }: { pin: ModalPin; hideLabels?: boolean }) => {
   const px = toWorld(pin.x - CENTER_X);
   const pz = toWorld(pin.y - CENTER_Y);
   const modeColor = pin.mode === 'acoustic' ? '#ff9933' : pin.mode === 'light' ? '#4ecdc4' : '#9333ea';
@@ -481,26 +487,28 @@ const Pin3D = ({ pin }: { pin: ModalPin }) => {
         <meshBasicMaterial color={modeColor} transparent opacity={0.4} />
       </mesh>
 
-      <Html position={[0, 0.6, 0]} center distanceFactor={6}>
-        <div style={{
-          background: 'hsla(240,10%,4%,0.95)',
-          border: `1px solid ${modeColor}66`,
-          borderRadius: 8,
-          padding: '8px 12px',
-          maxWidth: 200,
-          fontFamily: 'monospace',
-          boxShadow: `0 4px 20px ${modeColor}33`,
-          pointerEvents: 'none',
-        }}>
-          <div style={{ fontWeight: 'bold', fontSize: 10, color: modeColor, marginBottom: 4 }}>
-            {pin.title}
+      {!hideLabels && (
+        <Html position={[0, 0.6, 0]} center distanceFactor={6} zIndexRange={[5, 0]}>
+          <div style={{
+            background: 'hsla(240,10%,4%,0.9)',
+            border: `1px solid ${modeColor}44`,
+            borderRadius: 6,
+            padding: '6px 10px',
+            maxWidth: 180,
+            fontFamily: 'monospace',
+            boxShadow: `0 2px 12px ${modeColor}22`,
+            pointerEvents: 'none',
+          }}>
+            <div style={{ fontWeight: 'bold', fontSize: 9, color: modeColor, marginBottom: 3 }}>
+              {pin.title}
+            </div>
+            <div style={{ fontSize: 8, color: '#aaa', marginBottom: 3, whiteSpace: 'pre-wrap' }}>
+              {pin.body}
+            </div>
+            <div style={{ fontSize: 7, color: '#777' }}>{pin.tags}</div>
           </div>
-          <div style={{ fontSize: 9, color: '#bbb', marginBottom: 4, whiteSpace: 'pre-wrap' }}>
-            {pin.body}
-          </div>
-          <div style={{ fontSize: 8, color: '#888' }}>{pin.tags}</div>
-        </div>
-      </Html>
+        </Html>
+      )}
     </group>
   );
 };
@@ -754,6 +762,7 @@ const Scene = ({
   cockpitNodeId, onEnterCockpit, onExitCockpit, onCanvasClick, emittingAgentIds,
   storyCamera, storyHighlightId
 }: Omit<Canvas3DProps, 'effects'>) => {
+  const hideLabels = !!storyCamera;
   const orchestratorNode = useMemo(() => nodes.find(n => n.type === 'orchestrator'), [nodes]);
   const agents = useMemo(() => nodes.filter(n => n.type === 'agent'), [nodes]);
   const masses = useMemo(() => objects.filter(o => o.type === 'mass'), [objects]);
@@ -818,7 +827,7 @@ const Scene = ({
 
       {/* World objects */}
       {objects.map(obj => (
-        <Object3D key={obj.id} obj={obj} mode={mode} />
+        <Object3D key={obj.id} obj={obj} mode={mode} hideLabels={hideLabels} />
       ))}
 
       {/* Nodes */}
@@ -831,12 +840,13 @@ const Scene = ({
           onEnterCockpit={onEnterCockpit}
           isCockpitTarget={node.id === cockpitNodeId}
           isEmitting={emittingAgentIds?.includes(node.id)}
+          hideLabels={hideLabels}
         />
       ))}
 
       {/* Modal pins */}
       {modalPins.map(pin => (
-        <Pin3D key={pin.id} pin={pin} />
+        <Pin3D key={pin.id} pin={pin} hideLabels={hideLabels} />
       ))}
 
       {/* Story highlight */}
