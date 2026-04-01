@@ -503,23 +503,27 @@ const Wavefront3D = ({ wf, objects }: { wf: Wavefront; objects: WorldObject[] })
   }
 
   if (wf.mode === 'acoustic') {
-    const hue = 25 + (1 - wf.energy) * 15;
-    const sat = 0.8 + wf.energy * 0.2;
-    const lit = 0.35 + wf.energy * 0.25;
+    const hue = 20 + (1 - wf.energy) * 15;
+    const sat = 0.85 + wf.energy * 0.15;
+    const lit = 0.4 + wf.energy * 0.25;
     const waveColor = new THREE.Color().setHSL(hue / 360, sat, lit);
     if (wf.isEcho) {
       return (
         <mesh ref={meshRef} position={[px, emitterY, pz]}>
           <sphereGeometry args={[r, 16, 12]} />
-          <meshBasicMaterial color={new THREE.Color().setHSL(80 / 360, 0.5, 0.35)} transparent opacity={opacity * 0.4} wireframe depthWrite={false} />
+          <meshBasicMaterial color={new THREE.Color().setHSL(40 / 360, 0.6, 0.4)} transparent opacity={opacity * 0.45} wireframe depthWrite={false} />
         </mesh>
       );
     }
     return (
-      <mesh ref={meshRef} position={[px, emitterY, pz]}>
-        <sphereGeometry args={[r, 24, 16]} />
-        <meshBasicMaterial color={waveColor} transparent opacity={opacity * 0.6} wireframe depthWrite={false} />
-      </mesh>
+      <group position={[px, emitterY, pz]}>
+        <mesh ref={meshRef}>
+          <sphereGeometry args={[r, 24, 16]} />
+          <meshBasicMaterial color={waveColor} transparent opacity={opacity * 0.55} wireframe depthWrite={false} />
+        </mesh>
+        {/* Warm pressure glow at origin */}
+        {r < 0.8 && <pointLight color="#ff6633" intensity={opacity * 3} distance={2} decay={2} />}
+      </group>
     );
   }
 
