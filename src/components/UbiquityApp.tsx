@@ -109,31 +109,39 @@ export const UbiquityApp = () => {
 
   // Continuous agent emissions
   const autoEmitRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startupDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (autoEmitRef.current) clearInterval(autoEmitRef.current);
-    autoEmitRef.current = setInterval(() => {
-      setNodes(prev => {
-        const agents = prev.filter(n => n.type === 'agent');
-        if (agents.length === 0) return prev;
-        const count = 1 + Math.floor(Math.random() * 2);
-        const emittedIds: string[] = [];
-        for (let i = 0; i < count; i++) {
+    if (startupDelayRef.current) clearTimeout(startupDelayRef.current);
+
+    // Grace period: let scene fully render before ambient emissions begin
+    startupDelayRef.current = setTimeout(() => {
+      autoEmitRef.current = setInterval(() => {
+        // Skip if too many active wavefronts (prevents pile-up)
+        if (simulation.wavefronts.length >= 8) return;
+        // Pause during story mode — let the story control emissions
+        if (storyMode.isActive) return;
+
+        setNodes(prev => {
+          const agents = prev.filter(n => n.type === 'agent');
+          if (agents.length === 0) return prev;
+          // Exactly 1 emission per cycle (no random doubling)
           const agent = agents[Math.floor(Math.random() * agents.length)];
           simulation.emitWavefront(agent.x, agent.y);
           const kind = mode === 'acoustic' && Math.random() < 0.6 ? 'TENSION' as const : undefined;
           signalEngine.emitSignal(kind);
-          emittedIds.push(agent.id);
-        }
-        setEmittingAgentIds(emittedIds);
-        setTimeout(() => setEmittingAgentIds([]), 800);
-        return prev;
-      });
-    }, 2000 + Math.random() * 2000);
+          setEmittingAgentIds([agent.id]);
+          setTimeout(() => setEmittingAgentIds([]), 800);
+          return prev;
+        });
+      }, 4000 + Math.random() * 2000); // 4-6s interval (was 2-4s)
+    }, 5000); // 5s startup delay
 
     return () => {
+      if (startupDelayRef.current) clearTimeout(startupDelayRef.current);
       if (autoEmitRef.current) clearInterval(autoEmitRef.current);
     };
-  }, [simulation, signalEngine]);
+  }, [simulation, signalEngine, storyMode.isActive]);
 
   useEffect(() => {
     if (simulation.agentSignals.size === 0) return;
