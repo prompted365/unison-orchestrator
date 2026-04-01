@@ -473,21 +473,119 @@ const GravityWavefrontSphere = ({ r, position, opacity, objects, px, pz }: {
   );
 };
 
-// ─── 3D Modal Pin (floating card) ────────────────────────────────────
+// ─── Epitaph Ember Particles ─────────────────────────────────────────
+const EpitaphEmbers = ({ color, birthAge }: { color: string; birthAge: number }) => {
+  const groupRef = useRef<THREE.Group>(null);
+  const particles = useMemo(() => {
+    return Array.from({ length: 14 }, (_, i) => ({
+      id: i,
+      angle: (i / 14) * Math.PI * 2 + Math.random() * 0.4,
+      speed: 0.3 + Math.random() * 0.7,
+      drift: (Math.random() - 0.5) * 0.3,
+      size: 0.015 + Math.random() * 0.02,
+      delay: Math.random() * 0.3,
+    }));
+  }, []);
+
+  useFrame(() => {
+    if (!groupRef.current) return;
+    // Fade out after 2s
+    groupRef.current.visible = birthAge < 2.5;
+  });
+
+  if (birthAge > 2.5) return null;
+
+  return (
+    <group ref={groupRef} position={[0, -0.5, 0]}>
+      {particles.map(p => {
+        const t = Math.max(0, birthAge - p.delay);
+        if (t <= 0) return null;
+        const progress = Math.min(t / 1.8, 1);
+        const y = progress * 1.2 * p.speed;
+        const x = Math.sin(p.angle) * (1 - progress) * 0.3 + p.drift * progress;
+        const z = Math.cos(p.angle) * (1 - progress) * 0.3;
+        const opacity = progress < 0.7 ? 1 : (1 - (progress - 0.7) / 0.3);
+        const scale = p.size * (1 - progress * 0.6);
+
+        return (
+          <mesh key={p.id} position={[x, y, z]}>
+            <sphereGeometry args={[scale, 6, 6]} />
+            <meshBasicMaterial
+              color={progress < 0.4 ? '#ff4400' : progress < 0.7 ? '#ffaa22' : color}
+              transparent
+              opacity={opacity * 0.9}
+              depthWrite={false}
+            />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+};
+
+// ─── 3D Modal Pin (Epitaph — burns into existence) ───────────────────
 const Pin3D = ({ pin, hideLabels }: { pin: ModalPin; hideLabels?: boolean }) => {
   const px = toWorld(pin.x - CENTER_X);
   const pz = toWorld(pin.y - CENTER_Y);
   const modeColor = pin.mode === 'acoustic' ? '#ff9933' : pin.mode === 'light' ? '#4ecdc4' : '#9333ea';
+  const birthAge = useRef(0);
+  const [age, setAge] = useState(0);
+  const stemRef = useRef<THREE.Mesh>(null);
+  const glowRef = useRef<THREE.PointLight>(null);
+
+  useFrame((_, dt) => {
+    birthAge.current += dt;
+    // Only update state at intervals to avoid excessive re-renders
+    if (Math.floor(birthAge.current * 10) !== Math.floor(age * 10)) {
+      setAge(birthAge.current);
+    }
+
+    // Animate stem growing
+    if (stemRef.current) {
+      const stemProgress = Math.min(1, birthAge.current / 1.2);
+      const eased = 1 - Math.pow(1 - stemProgress, 3);
+      stemRef.current.scale.set(1, eased, 1);
+      stemRef.current.position.y = eased * 0.5;
+    }
+
+    // Animate birth glow
+    if (glowRef.current) {
+      const glowPhase = birthAge.current < 1.5 ? Math.sin(birthAge.current * 4) * 2 + 2 : 0.5;
+      glowRef.current.intensity = glowPhase;
+    }
+  });
+
+  const cardOpacity = Math.min(1, Math.max(0, (age - 1.0) / 0.8));
 
   return (
     <group position={[px, 1.2, pz]}>
-      {/* Stem line */}
-      <mesh>
-        <cylinderGeometry args={[0.01, 0.01, 1, 6]} />
-        <meshBasicMaterial color={modeColor} transparent opacity={0.4} />
+      {/* Ember particles during birth */}
+      <EpitaphEmbers color={modeColor} birthAge={age} />
+
+      {/* Birth flash */}
+      <pointLight ref={glowRef} color={modeColor} intensity={0} distance={3} />
+
+      {/* Crystallization point at base */}
+      {age < 2 && (
+        <mesh position={[0, -0.5, 0]}>
+          <octahedronGeometry args={[0.04 + (1 - Math.min(1, age / 1.5)) * 0.06, 0]} />
+          <meshBasicMaterial
+            color={age < 0.8 ? '#ff6600' : modeColor}
+            transparent
+            opacity={Math.max(0, 1 - age / 2)}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
+
+      {/* Stem line — grows upward */}
+      <mesh ref={stemRef} position={[0, 0, 0]}>
+        <cylinderGeometry args={[0.008, 0.015, 1, 6]} />
+        <meshBasicMaterial color={modeColor} transparent opacity={Math.min(0.6, age * 0.5)} />
       </mesh>
 
-      {!hideLabels && (
+      {/* Card — fades in after stem grows */}
+      {!hideLabels && cardOpacity > 0.01 && (
         <Html position={[0, 0.6, 0]} center distanceFactor={6} zIndexRange={[5, 0]}>
           <div style={{
             background: 'hsla(240,10%,4%,0.9)',
@@ -498,6 +596,9 @@ const Pin3D = ({ pin, hideLabels }: { pin: ModalPin; hideLabels?: boolean }) => 
             fontFamily: 'monospace',
             boxShadow: `0 2px 12px ${modeColor}22`,
             pointerEvents: 'none',
+            opacity: cardOpacity,
+            transform: `translateY(${(1 - cardOpacity) * 8}px)`,
+            transition: 'opacity 0.3s, transform 0.3s',
           }}>
             <div style={{ fontWeight: 'bold', fontSize: 9, color: modeColor, marginBottom: 3 }}>
               {pin.title}
