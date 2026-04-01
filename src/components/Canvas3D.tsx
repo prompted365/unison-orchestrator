@@ -474,7 +474,7 @@ const GravityWavefrontSphere = ({ r, position, opacity, objects, px, pz }: {
 };
 
 // ─── 3D Modal Pin (floating card) ────────────────────────────────────
-const Pin3D = ({ pin }: { pin: ModalPin }) => {
+const Pin3D = ({ pin, hideLabels }: { pin: ModalPin; hideLabels?: boolean }) => {
   const px = toWorld(pin.x - CENTER_X);
   const pz = toWorld(pin.y - CENTER_Y);
   const modeColor = pin.mode === 'acoustic' ? '#ff9933' : pin.mode === 'light' ? '#4ecdc4' : '#9333ea';
