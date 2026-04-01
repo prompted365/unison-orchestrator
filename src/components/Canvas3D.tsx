@@ -24,6 +24,14 @@ const ACTOR_GROUP_LABELS: Record<string, string> = {
   epitaph_extractor: 'Epitaph Extractor',
 };
 
+const ACTOR_GROUP_DESCRIPTIONS: Record<string, string> = {
+  ghost_chorus: 'Voice of the dead. Injects failure dispositions\ninto runtime threads near lethal topologies.',
+  economy_whisper: 'Tracks economic pressure signals.\nDemurrage, stake bonds, mint freezes.',
+  ecotone_gate: 'Boundary mediator. Governs attenuation\nacross container crossings.',
+  drift_tracker: 'Monitors signal drift and phase decay.\nFlags when meaning degrades over distance.',
+  epitaph_extractor: 'Compresses resolved signal lifecycles\ninto durable dispositions for the chorus.',
+};
+
 // ─── Prop types ──────────────────────────────────────────────────────
 interface Canvas3DProps {
   mode: CommunicationMode;
