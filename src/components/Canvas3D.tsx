@@ -1083,7 +1083,7 @@ const Scene = ({
       <directionalLight position={[5, 8, 3]} intensity={0.5} />
       <directionalLight position={[-3, 5, -4]} intensity={0.15} color="#6677aa" />
       <Stars radius={50} depth={30} count={2000} factor={3} fade speed={0.5} />
-      <Terrain mode={mode} />
+      <Terrain mode={mode} objects={objects} wavefronts={wavefronts} />
 
       {storyCamera ? (
         <StoryCameraController storyCamera={storyCamera} />
