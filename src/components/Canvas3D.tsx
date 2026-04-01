@@ -1,3 +1,48 @@
+// ═══ [CE] CIVIL ENGINEER ═══════════════════════════════════════
+// 3D rendering layer for the CGG signal manifold visualization.
+//
+// COORDINATE TRANSFORM (the canonical contract for Talos integration):
+//   SCALE = 0.02 → 1 pixel in 2D space = 0.02 world units in 3D
+//   CENTER_X = 400, CENTER_Y = 280 → origin maps to pixel (400, 280)
+//   toWorld(px) = px * 0.02
+//   worldX = (pixelX - 400) * 0.02,  worldZ = (pixelY - 280) * 0.02
+//   Terrain Y computed via multi-octave value noise (getTerrainHeight)
+//
+//   SCALE RATIOS FOR TALOS:
+//   800px canvas width → 16 world units → represents ~48m at 1 unit ≈ 3m
+//   Agent sphere radius 0.12-0.20 → ~0.36-0.60m → person-scale in Talos
+//   Orchestrator octahedron radius 0.25 → ~0.75m → slightly larger than agents
+//   Wall height 0.3 world units → ~0.9m → waist-height barrier
+//   Mass sphere radius varies → constitutional weight determines physical scale
+//
+// Gap D6: No governance rung rings (site < domain < estate < federation).
+//   Talos should render concentric scope rings on the terrain or as vertical tiers.
+// Gap D5: Connection lines are orchestrator→agent only, undifferentiated.
+//   Talos needs edge-type visualization (SPAWNED, DELEGATED_BY, ACTED_FOR, etc.)
+// ════════════════════════════════════════════════════════════════
+// ═══ [VG] VIDEOGRAPHER ═════════════════════════════════════════
+// LIGHTING RIG:
+//   hemisphereLight(sky=#b1e1ff, ground=#4a3728, intensity=0.6) — cool sky, warm ground fill
+//   directionalLight(#fffaf0, intensity=1.8) — the "sun" at (30, 25, 20), casts shadows
+//   pointLight(#ff9944, intensity=5, distance=12) — warm central glow at origin
+//   Stars: 1200 particles, radius 80, depth 60 — ambient space backdrop
+//
+// NODE VISUAL ENCODING (truth without tooltips):
+//   Geometry → actor group identity:
+//     Octahedron (faceted) = Orchestrator/Mogul or Epitaph Extractor
+//     Icosahedron (rounded facets) = Ghost Chorus — semi-transparent, flickering
+//     Sphere (smooth) = all other agent types
+//   Color temperature → SNR:
+//     Red (0°) = no signal / deaf
+//     Yellow (45°) = partial reception
+//     Cyan (180°) = strong reception
+//   Opacity → Ghost Chorus uses 0.3-0.5 opacity to communicate spectral nature
+//   Size → base radius + SNR-scaled growth (0.12 + snr * 0.08)
+//
+// TERRAIN: 128×128 segment plane, 20×20 world units, multi-octave noise.
+//   Dynamic deformation from tectonic drift, mass anchoring, and signal pressure.
+//   The terrain IS the invariant field — it communicates governance topology spatially.
+// ════════════════════════════════════════════════════════════════
 import { useRef, useState, useCallback, useMemo, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Html, Stars, Line } from "@react-three/drei";
@@ -6,9 +51,10 @@ import { CommunicationMode, Node, WorldObject, ModalPin, Effect, Wavefront, Agen
 import { StoryCamera, StoryCallout } from "../hooks/useStoryMode";
 
 // ─── Constants ───────────────────────────────────────────────────────
-const SCALE = 0.02;
-const toWorld = (px: number) => px * SCALE;
-const CENTER_X = 400, CENTER_Y = 280;
+// [CE] COORDINATE CONTRACT — these values MUST match useStoryMode.ts and UbiquityApp.tsx
+const SCALE = 0.02;                        // [CE] px → world unit conversion factor
+const toWorld = (px: number) => px * SCALE; // [CE] convert pixel distance to world distance
+const CENTER_X = 400, CENTER_Y = 280;      // [CE] 2D pixel origin → maps to world (0, 0)
 
 const MODE_COLORS: Record<CommunicationMode, THREE.Color> = {
   acoustic: new THREE.Color().setHSL(25 / 360, 1, 0.6),
@@ -33,7 +79,20 @@ const ACTOR_GROUP_DESCRIPTIONS: Record<string, string> = {
 };
 
 // ─── Procedural Terrain Noise ────────────────────────────────────────
-// Simple value noise with multiple octaves for natural terrain
+// ═══ [CE] Multi-octave value noise for natural terrain generation ═══
+// The terrain represents the "invariant field" — the topological surface through
+// which all signals propagate. Masses PIN this surface; signals DEFORM it.
+// In Talos, this terrain maps to the estate ground plane. Buildings sit ON this surface.
+// Constraint: getTerrainHeight MUST be deterministic (no random()) so all components
+//   that call it for the same (x, z) get the same Y value. Entities sit flush.
+// ═══ [VG] 5 noise octaves create realistic terrain at multiple scales:
+//   0.8 freq → large rolling hills (macro landscape)
+//   1.6 freq → medium undulation (neighborhood-scale)
+//   3.2 freq → rocky detail (building-lot scale)
+//   6.4 freq → fine grit (walkway texture)
+//   12.8 freq → micro texture (ground surface)
+//   Total height range: approximately -0.3 to +0.8 world units
+// ════════════════════════════════════════════════════════════════
 function hash2D(x: number, z: number): number {
   let n = Math.sin(x * 127.1 + z * 311.7) * 43758.5453;
   return n - Math.floor(n);
@@ -44,7 +103,6 @@ function smoothNoise(x: number, z: number): number {
   const iz = Math.floor(z);
   const fx = x - ix;
   const fz = z - iz;
-  // Smoothstep
   const sx = fx * fx * (3 - 2 * fx);
   const sz = fz * fz * (3 - 2 * fz);
 
@@ -57,21 +115,21 @@ function smoothNoise(x: number, z: number): number {
 }
 
 function terrainNoise(x: number, z: number): number {
-  // Multi-octave for realistic terrain
   let h = 0;
-  h += smoothNoise(x * 0.8, z * 0.8) * 0.5;      // Large rolling hills
-  h += smoothNoise(x * 1.6, z * 1.6) * 0.25;      // Medium undulation
-  h += smoothNoise(x * 3.2, z * 3.2) * 0.12;      // Rocky detail
-  h += smoothNoise(x * 6.4, z * 6.4) * 0.06;      // Fine grit
-  h += smoothNoise(x * 12.8, z * 12.8) * 0.03;    // Micro texture
+  h += smoothNoise(x * 0.8, z * 0.8) * 0.5;      // [VG] Large rolling hills
+  h += smoothNoise(x * 1.6, z * 1.6) * 0.25;      // [VG] Medium undulation
+  h += smoothNoise(x * 3.2, z * 3.2) * 0.12;      // [VG] Rocky detail
+  h += smoothNoise(x * 6.4, z * 6.4) * 0.06;       // [VG] Fine grit
+  h += smoothNoise(x * 12.8, z * 12.8) * 0.03;    // [VG] Micro texture
   return h;
 }
 
-/** Sample terrain height at world-space x, z coordinates */
+/** [CE] Sample terrain height at world-space x, z coordinates.
+ *  Returns Y in world units. All entities MUST use this to sit on terrain.
+ *  Talos: buildings, infrastructure, and agents all call this for ground-truth Y. */
 function getTerrainHeight(worldX: number, worldZ: number): number {
   const n = terrainNoise(worldX * 0.5 + 50, worldZ * 0.5 + 50);
-  // Scale: max height ~0.8 units, with valleys dipping to ~-0.3
-  return (n - 0.45) * 1.4;
+  return (n - 0.45) * 1.4; // [VG] Range: ~-0.3 to ~0.8 world units
 }
 
 // ─── Prop types ──────────────────────────────────────────────────────

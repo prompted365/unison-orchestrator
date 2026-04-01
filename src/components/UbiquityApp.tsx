@@ -1,3 +1,45 @@
+// ═══ [CE] CIVIL ENGINEER ═══════════════════════════════════════
+// Application shell — wires all CGG subsystems together.
+//
+// ENTITY INITIALIZATION:
+//   Orchestrator node fixed at pixel (400, 280) → world origin (0, 0, 0).
+//   Agents distributed in 5 clusters, each assigned an actor_group from the
+//   canonical subgraph: ghost_chorus, economy_whisper, ecotone_gate,
+//   drift_tracker, epitaph_extractor. Each agent gets 2-3 random capabilities.
+//
+//   Objects placed per mode:
+//     acoustic → walls (Attenuation Boundaries)
+//     light    → lenses + mirrors (Observability Lens, Specular Surface)
+//     gravity  → masses (Invariant Field tension plates)
+//
+// STORY MODE OVERRIDE:
+//   When a story arc starts, initializeScene(band) uses STORY_LAYOUT for
+//   deterministic agent/object positions. This ensures camera framing works.
+//
+// AUTO-EMIT: Every 2-4 seconds, 1-2 random agents emit wavefronts.
+//   This creates ambient signal activity for the visualization.
+//   In acoustic mode, 60% of auto-emits are TENSION signals (escalation pressure).
+//
+// Gap D3: No agent inbox UI — agents are passive receivers only.
+// Gap D4: No Astragals connections between agents.
+// Gap D5: No edge-type visualization on connection lines.
+// Gap D6: No scope rings or rung hierarchy visualization.
+// ════════════════════════════════════════════════════════════════
+// ═══ [VG] VIDEOGRAPHER ═════════════════════════════════════════
+// UI SURFACE INVENTORY:
+//   Header: Logo + title + ModeSelector + Story/Gradient/Manifold buttons
+//   Main: Canvas3D (dominant viewport, flex-1) + StoryOverlay (when active)
+//   Footer: Controls (broadcast/add/pin/clear) + Warrants + TimeScale + ModeExplanation
+//   Drawers: ManifoldDashboard (right), GradientPanel (left)
+//
+// INTERACTION MODEL:
+//   Click canvas → broadcast from Mogul
+//   Double-click node → enter cockpit (first-person view)
+//   Mode buttons → switch acoustic/light/gravity (disabled during story)
+//   Story menu → choose arc, plays cinematic sequence with skip/exit controls
+//
+// z-index layering: header=20, footer=20, canvas=1, story overlay=30, drawers=40
+// ════════════════════════════════════════════════════════════════
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { ModeSelector } from "./ModeSelector";
 import { UbiquityLogo } from "./UbiquityLogo";

@@ -1,3 +1,30 @@
+// ═══ [CE] CIVIL ENGINEER ═══════════════════════════════════════
+// Orchestrator — the Mogul's governance state machine.
+// Canonical mapping:
+//   OrchestratorState.field → the runtime governance field metrics
+//     fieldLatency: signal propagation delay across the estate
+//     breachRisk: probability of governance boundary violation
+//     signalCongestion: channel utilization pressure
+//     barometerPhase: 0-4 index into PHASE_TIERS (see below)
+//     demurrageRate: signal volume decay rate per tick (economic drain)
+//
+//   PHASE_TIERS (canonical Barometer progression):
+//     0=SimOnly → 1=PaperTrading → 2=ShadowLive → 3=LiveRestricted → 4=LiveFull
+//     Phase determines: breach flag activation, demurrage rate, warrant minting rules
+//     Phase 3+: mint_halted. Phase 4: frozen. Disbursement blocked at phase <3 with stake <5.
+//
+//   TASK_REQUIREMENTS: maps governance tasks to required actor capabilities.
+//     Agent must have the required capabilities to score well on a task.
+//     softPrereq returns a fitness value (0-1) and a penalty for missing capabilities.
+//     This models the "soft prerequisite" pattern — not hard gating, but penalized fitness.
+//
+//   Economic bridge: aggregates warrant stake bonds, tracks penalty accrual,
+//     computes disbursement_safe flag. This feeds into the Manifold Dashboard.
+//
+// Gap D6: No rung-scoped orchestration — single estate-level orchestrator only.
+// Gap D10: No CogPR lifecycle management — tasks reference capabilities but not
+//   the governance artifacts (CogPRs, mandates) that define them.
+// ════════════════════════════════════════════════════════════════
 import { useState, useCallback, useMemo } from "react";
 import { CommunicationMode, WorldObject, OrchestratorState } from "../types";
 import { BreachFlags, EconomicBridgeState, PhaseTier } from "../types/orchestration";

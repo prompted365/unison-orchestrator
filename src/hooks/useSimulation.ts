@@ -1,11 +1,39 @@
+// ═══ [CE] CIVIL ENGINEER ═══════════════════════════════════════
+// Wavefront lifecycle engine — the spatial propagation loop.
+// Canonical mapping: Signal emission → wavefront expansion → agent reception → energy decay
+//
+// COORDINATE SPACE: All positions in 2D pixel coords (800×560 canvas).
+//   CANVAS_W=800, CANVAS_H=560. MAX_RADIUS = diagonal ≈ 976px.
+//   Wavefronts pruned when radius > MAX_RADIUS or energy < MIN_ENERGY (0.01).
+//
+// TIME MODEL: Uses wall-clock via requestAnimationFrame.
+//   dt capped at 50ms to prevent physics explosion on tab-switch.
+//   timeScaleRef allows story mode to control simulation speed.
+//   Gap D9: No governance tic model — all timestamps are performance.now() ms.
+//
+// WAVEFRONT INTERACTIONS:
+//   Acoustic + wall → echo wavefront (0.85× velocity, reduced energy)
+//   Light + lens → focused wavefront (1.6× energy, 0.8× velocity)
+//   Light + mirror → beam wavefront (isBeam=true, directional, 0.85 energy)
+//   Gravity + mass → time dilation (reduced effective velocity near masses)
+//
+// AGENT RECEPTION: Wavefront "reaches" agent when wf.radius >= distance - 8px.
+//   SNR computed via inverse-square + absorption + wall attenuation.
+//   Multiple wavefronts stack (totalSnr). SNR decays at 0.97× per frame when no signal.
+//
+// Gap D3: No agent inbox integration — reception is passive SNR observation only.
+//   In Talos, reception should create inbox work-items with state machine lifecycle.
+// Gap D4: No Astragals — all delivery is broadcast. Point-to-point guaranteed
+//   delivery would bypass the wavefront system entirely.
+// ════════════════════════════════════════════════════════════════
 import { useRef, useCallback, useEffect, useState } from "react";
 import { CommunicationMode, Node, WorldObject, Wavefront, AgentSignalState } from "../types";
 import { usePhysics } from "./usePhysics";
 
-const CANVAS_W = 800;
-const CANVAS_H = 560;
-const MAX_RADIUS = Math.sqrt(CANVAS_W * CANVAS_W + CANVAS_H * CANVAS_H);
-const MIN_ENERGY = 0.01;
+const CANVAS_W = 800;   // [CE] 2D canvas width in pixels
+const CANVAS_H = 560;   // [CE] 2D canvas height in pixels
+const MAX_RADIUS = Math.sqrt(CANVAS_W * CANVAS_W + CANVAS_H * CANVAS_H); // [CE] diagonal = prune boundary
+const MIN_ENERGY = 0.01; // [CE] energy floor — wavefronts below this are garbage-collected
 
 let wfCounter = 0;
 

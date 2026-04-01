@@ -1,3 +1,35 @@
+// ═══ [CE] CIVIL ENGINEER ═══════════════════════════════════════
+// Signal Engine — the governance-layer signal lifecycle manager.
+// This operates ABOVE the spatial wavefront system (useSimulation).
+// Wavefronts model spatial propagation; this models governance semantics.
+//
+// SIGNAL TAXONOMY (canonical CGG v3):
+//   SignalKind: BEACON, LESSON, OPPORTUNITY, TENSION
+//     BEACON: "I exist, I'm here, attend to me" — basic presence signal
+//     LESSON: "I learned something" — knowledge propagation
+//     OPPORTUNITY: "There's value here" — economic signal
+//     TENSION: "Something is wrong" — escalation pressure (higher volumeRate)
+//
+// SIGNAL BANDS (canonical):
+//   PRIMITIVE: base-layer signals (acoustic, gravity)
+//   COGNITIVE: higher-order signals (light)
+//   SOCIAL: cross-scope signals (not spatially modeled yet)
+//   PRESTIGE: auto-muted (0 dB multiplier) — prestige cannot amplify itself
+//
+// WARRANT MINTING:
+//   Condition 1: volume_threshold — signal volume > 0.8 → obligation token mints
+//   Condition 2: harmonic_triad — BEACON+LESSON+TENSION co-exist within 5s window
+//   Condition 3: circuit_breaker — breachRisk > 0.25 → emergency warrant
+//   Warrants require stake bonds (0.1 + priority * 0.4) to dismiss.
+//   "Silence is not consent" — unacknowledged signals escalate automatically.
+//
+// DEMURRAGE: Signal volume decays by demurrageRate per tick. This prevents
+//   signal accumulation without governance action. Canonical economic model.
+//
+// Gap D9: All timestamps are wall-clock (performance.now()). Talos uses tics.
+// Gap D10: CogPRs not modeled as first-class entities. Signals reference them
+//   narratively but CogPR lifecycle (draft→review→promote→ratify) is absent.
+// ════════════════════════════════════════════════════════════════
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { CommunicationMode } from "../types";
 import {
@@ -8,25 +40,30 @@ import {
 let idCounter = 0;
 const nextId = (prefix: string) => `${prefix}-${idCounter++}`;
 
-const SIGNAL_TTL_S = 20;
-const WARRANT_TTL_S = 30;
-const TRIAD_WINDOW_S = 5;
-const VOLUME_THRESHOLD = 0.8;
+const SIGNAL_TTL_S = 20;     // [CE] signal lifetime in seconds (wall-clock, not tics)
+const WARRANT_TTL_S = 30;    // [CE] warrant lifetime before auto-expiry
+const TRIAD_WINDOW_S = 5;    // [CE] max age spread for harmonic triad detection
+const VOLUME_THRESHOLD = 0.8; // [CE] canonical warrant minting threshold
 
+// ═══ [CE] Band mapping: communication mode → signal band ═══
+// acoustic/gravity map to PRIMITIVE (base layer), light maps to COGNITIVE (higher order)
 const MODE_BAND: Record<CommunicationMode, SignalBand> = {
   acoustic: 'PRIMITIVE',
   light: 'COGNITIVE',
   gravity: 'PRIMITIVE'
 };
 
+// [CE] Actor subgraph subsystems — these are the canonical capability groups
 const SUBSYSTEMS = ['ghost_chorus', 'economy_whisper', 'drift_tracker', 'ecotone_gate', 'epitaph_extractor'];
 
-// Band budget dB multipliers (linear)
+// ═══ [CE] Band budget dB multipliers ═══
+// PRIMITIVE: full volume (0 dB). COGNITIVE: -6 dB. SOCIAL: -12 dB. PRESTIGE: auto-muted.
+// This enforces the principle that higher-status signals get LESS amplification, not more.
 const BAND_MULTIPLIER: Record<SignalBand, number> = {
-  PRIMITIVE: 1.0,       // 0 dB
-  COGNITIVE: 0.5,       // -6 dB
-  SOCIAL: 0.25,         // -12 dB
-  PRESTIGE: 0.0,        // auto-muted
+  PRIMITIVE: 1.0,
+  COGNITIVE: 0.5,
+  SOCIAL: 0.25,
+  PRESTIGE: 0.0,  // [CE] prestige cannot amplify itself — canonical invariant
 };
 
 export const deriveBreachFlags = (phase: number): BreachFlags => ({
