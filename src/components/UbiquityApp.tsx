@@ -120,7 +120,7 @@ export const UbiquityApp = () => {
         // Skip if too many active wavefronts (prevents pile-up)
         if (simulation.wavefronts.length >= 8) return;
         // Pause during story mode — let the story control emissions
-        if (storyMode.isActive) return;
+        if (storyMode.isPlaying) return;
 
         setNodes(prev => {
           const agents = prev.filter(n => n.type === 'agent');
