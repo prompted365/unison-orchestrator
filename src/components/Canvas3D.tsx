@@ -1120,7 +1120,7 @@ const Scene = ({
       {/* Cool fill from opposite side — reflected skylight */}
       <directionalLight
         position={[-40, 30, 30]}
-        intensity={0.2}
+        intensity={0.4}
         color="#8899cc"
       />
 
