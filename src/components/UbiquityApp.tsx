@@ -346,15 +346,37 @@ export const UbiquityApp = () => {
           <ModeSelector mode={mode} onModeChange={setMode} disabled={storyMode.isPlaying} />
         </div>
 
-        <div className="flex items-center gap-1.5 order-2 sm:order-3">
-          <button
-            onClick={storyMode.isPlaying ? storyMode.stopStory : storyMode.startStory}
-            className={`drawer-toggle-btn ${storyMode.isPlaying ? 'active' : ''}`}
-            title="Story Mode"
-          >
-            <span className="text-sm">🎬</span>
-            <span className="hidden md:inline text-[10px]">Story</span>
-          </button>
+        <div className="flex items-center gap-1.5 order-2 sm:order-3 relative">
+          <div className="relative">
+            <button
+              onClick={() => {
+                if (storyMode.isPlaying) {
+                  storyMode.stopStory();
+                } else {
+                  setStoryMenuOpen(prev => !prev);
+                }
+              }}
+              className={`drawer-toggle-btn ${storyMode.isPlaying ? 'active' : ''}`}
+              title="Story Mode"
+            >
+              <span className="text-sm">🎬</span>
+              <span className="hidden md:inline text-[10px]">Story</span>
+            </button>
+            {storyMenuOpen && !storyMode.isPlaying && (
+              <div className="absolute top-full right-0 mt-1 w-52 rounded-lg border border-primary/20 bg-background/95 backdrop-blur-xl shadow-2xl p-1.5 z-50">
+                {storyMode.storyArcs.map((arc, i) => (
+                  <button
+                    key={arc.band}
+                    onClick={() => { storyMode.startStory(i); setStoryMenuOpen(false); }}
+                    className="w-full text-left px-3 py-2 rounded-md text-xs font-medium hover:bg-muted/40 transition-colors flex items-center gap-2"
+                  >
+                    <span>{arc.band === 'acoustic' ? '🔊' : arc.band === 'light' ? '💡' : '🌀'}</span>
+                    <span className="text-foreground/90">{arc.title}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             onClick={() => setIsGradientOpen(prev => !prev)}
             className={`drawer-toggle-btn ${isGradientOpen ? 'active' : ''}`}
