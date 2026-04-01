@@ -343,7 +343,7 @@ export const UbiquityApp = () => {
         </div>
 
         <div className="order-3 sm:order-2 w-full sm:w-auto flex justify-center">
-          <ModeSelector mode={mode} onModeChange={setMode} />
+          <ModeSelector mode={mode} onModeChange={setMode} disabled={storyMode.isPlaying} />
         </div>
 
         <div className="flex items-center gap-1.5 order-2 sm:order-3">
