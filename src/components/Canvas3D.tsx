@@ -6,7 +6,7 @@ import { CommunicationMode, Node, WorldObject, ModalPin, Effect, Wavefront, Agen
 import { StoryCamera } from "../hooks/useStoryMode";
 
 // ─── Constants ───────────────────────────────────────────────────────
-const SCALE = 0.02; // 1px → 0.02 world units → 800px = 16 units
+const SCALE = 0.02;
 const toWorld = (px: number) => px * SCALE;
 const CENTER_X = 400, CENTER_Y = 280;
 
@@ -64,24 +64,58 @@ const Node3D = ({
   const meshRef = useRef<THREE.Mesh>(null);
   const emitRingRef = useRef<THREE.Mesh>(null);
   const emitLightRef = useRef<THREE.PointLight>(null);
+  const ghostWispRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
   const emitPhase = useRef(0);
 
   const isOrch = node.type === 'orchestrator';
+  const isGhostChorus = node.actorGroup === 'ghost_chorus';
+  const isEpitaphExtractor = node.actorGroup === 'epitaph_extractor';
   const snr = signal?.snr ?? (isOrch ? 1 : 0);
-  const color = isOrch ? MODE_COLORS[mode] : new THREE.Color().setHSL(
-    snr > 0.6 ? 180 / 360 : snr > 0.25 ? 45 / 360 : 0, snr > 0.05 ? 0.8 : 0.2, snr > 0.05 ? 0.6 : 0.35
-  );
-  const radius = isOrch ? 0.25 : 0.12 + snr * 0.08;
+
+  const color = isOrch ? MODE_COLORS[mode]
+    : isGhostChorus ? new THREE.Color().setHSL(200 / 360, 0.15, 0.5 + snr * 0.15)
+    : isEpitaphExtractor ? new THREE.Color().setHSL(30 / 360, 0.7, 0.45 + snr * 0.2)
+    : new THREE.Color().setHSL(
+        snr > 0.6 ? 180 / 360 : snr > 0.25 ? 45 / 360 : 0,
+        snr > 0.05 ? 0.8 : 0.2,
+        snr > 0.05 ? 0.6 : 0.35
+      );
+
+  const radius = isOrch ? 0.25 : isGhostChorus ? 0.1 + snr * 0.06 : 0.12 + snr * 0.08;
 
   useFrame((_, dt) => {
     if (!meshRef.current) return;
+    const mat = meshRef.current.material as THREE.MeshStandardMaterial;
+
     if (isOrch) {
       meshRef.current.rotation.y += dt * 0.5;
+      mat.emissiveIntensity = 0.3 + snr * 1.5 + Math.sin(Date.now() * 0.003) * 0.3;
+    } else if (isGhostChorus) {
+      // Spectral flicker — irregular opacity pulsing like something not fully present
+      const flicker = Math.sin(Date.now() * 0.005 + node.x * 0.1) * 0.15
+        + Math.sin(Date.now() * 0.013) * 0.1;
+      mat.opacity = 0.3 + flicker + snr * 0.2;
+      mat.emissiveIntensity = 0.8 + Math.sin(Date.now() * 0.004) * 0.4;
+      meshRef.current.rotation.y += dt * 0.15;
+    } else if (isEpitaphExtractor) {
+      // Slow smolder — the forge that compresses failure into memory
+      mat.emissiveIntensity = 0.5 + Math.sin(Date.now() * 0.002) * 0.3;
+    } else {
+      mat.emissiveIntensity = 0.3 + snr * 1.5;
     }
-    // Pulse emissive
-    const mat = meshRef.current.material as THREE.MeshStandardMaterial;
-    mat.emissiveIntensity = 0.3 + snr * 1.5 + (isOrch ? Math.sin(Date.now() * 0.003) * 0.3 : 0);
+
+    // Ghost wisp animation — soul fragments orbiting the dead
+    if (ghostWispRef.current && isGhostChorus) {
+      ghostWispRef.current.rotation.y += dt * 0.25;
+      ghostWispRef.current.children.forEach((child, i) => {
+        const mesh = child as THREE.Mesh;
+        const t = Date.now() * 0.001 + i * 1.5;
+        mesh.position.y = 0.05 + Math.sin(t) * 0.12;
+        const wMat = mesh.material as THREE.MeshBasicMaterial;
+        wMat.opacity = 0.12 + Math.sin(t * 1.3) * 0.08;
+      });
+    }
 
     // Emission ring animation
     if (isEmitting) {
@@ -104,8 +138,9 @@ const Node3D = ({
     if (isOrch) return 'Mogul — Estate Conductor';
     const group = node.actorGroup ? ACTOR_GROUP_LABELS[node.actorGroup] || node.actorGroup : 'Agent';
     const idx = node.actorIndex != null ? ` #${node.actorIndex + 1}` : '';
+    const desc = node.actorGroup ? ACTOR_GROUP_DESCRIPTIONS[node.actorGroup] || '' : '';
     const caps = node.capabilities.map(c => ACTOR_GROUP_LABELS[c] || c).join(', ');
-    return `${group}${idx}\n[${caps}]\nSNR: ${snr.toFixed(3)}`;
+    return `${group}${idx}\n${desc}\n[${caps}]\nSNR: ${snr.toFixed(3)}`;
   }, [isOrch, node, snr]);
 
   const px = toWorld(node.x - CENTER_X);
@@ -119,27 +154,68 @@ const Node3D = ({
         onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto'; }}
         onDoubleClick={(e) => { e.stopPropagation(); onEnterCockpit(node.id); }}
       >
-        {isOrch ? <octahedronGeometry args={[radius, 1]} /> : <sphereGeometry args={[radius, 16, 16]} />}
+        {isOrch ? (
+          <octahedronGeometry args={[radius, 1]} />
+        ) : isGhostChorus ? (
+          <icosahedronGeometry args={[radius, 0]} />
+        ) : isEpitaphExtractor ? (
+          <octahedronGeometry args={[radius, 0]} />
+        ) : (
+          <sphereGeometry args={[radius, 16, 16]} />
+        )}
         <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={0.5}
-          metalness={0.4}
-          roughness={0.3}
+          color={isGhostChorus ? '#556677' : color}
+          emissive={isGhostChorus ? '#7799aa' : isEpitaphExtractor ? '#cc6622' : color}
+          emissiveIntensity={isGhostChorus ? 0.8 : 0.5}
+          metalness={isGhostChorus ? 0.05 : 0.4}
+          roughness={isGhostChorus ? 0.9 : 0.3}
           transparent
-          opacity={isCockpitTarget ? 0.3 : 1}
+          opacity={isGhostChorus ? 0.35 : isCockpitTarget ? 0.3 : 1}
+          side={isGhostChorus ? THREE.DoubleSide : THREE.FrontSide}
         />
       </mesh>
 
-      {/* SNR halo */}
-      {snr > 0.05 && !isCockpitTarget && (
+      {/* Ghost Chorus: spectral wisps orbiting — soul fragments of the dead */}
+      {isGhostChorus && (
+        <group ref={ghostWispRef}>
+          {[0, 1, 2, 3, 4].map(i => {
+            const angle = (i / 5) * Math.PI * 2;
+            const dist = radius + 0.08;
+            return (
+              <mesh key={i} position={[Math.cos(angle) * dist, 0.05, Math.sin(angle) * dist]}>
+                <sphereGeometry args={[0.012, 4, 4]} />
+                <meshBasicMaterial color="#99bbcc" transparent opacity={0.15} depthWrite={false} />
+              </mesh>
+            );
+          })}
+        </group>
+      )}
+
+      {/* Ghost Chorus: faint vertical wisp — disposition injection vector */}
+      {isGhostChorus && (
+        <mesh position={[0, 0.18, 0]}>
+          <cylinderGeometry args={[0.002, 0.008, 0.35, 4]} />
+          <meshBasicMaterial color="#8899bb" transparent opacity={0.1} depthWrite={false} />
+        </mesh>
+      )}
+
+      {/* Epitaph Extractor: smoldering ring at base — the forge */}
+      {isEpitaphExtractor && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
+          <ringGeometry args={[radius + 0.02, radius + 0.06, 16]} />
+          <meshBasicMaterial color="#cc5500" transparent opacity={0.3} depthWrite={false} side={THREE.DoubleSide} />
+        </mesh>
+      )}
+
+      {/* SNR halo — not for ghosts (they don't receive, they haunt) */}
+      {snr > 0.05 && !isCockpitTarget && !isGhostChorus && (
         <mesh>
           <ringGeometry args={[radius + 0.05, radius + 0.05 + snr * 0.3, 32]} />
           <meshBasicMaterial color={color} transparent opacity={snr * 0.4} side={THREE.DoubleSide} />
         </mesh>
       )}
 
-      {/* Label — hidden during story mode */}
+      {/* Label */}
       {!hideLabels && (
         <Html
           position={[0, radius + 0.2, 0]}
@@ -149,14 +225,15 @@ const Node3D = ({
           style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}
         >
           <div style={{
-            background: 'hsla(240,10%,4%,0.75)',
-            border: '1px solid hsla(180,100%,67%,0.2)',
+            background: isGhostChorus ? 'hsla(210,15%,8%,0.65)' : 'hsla(240,10%,4%,0.75)',
+            border: `1px solid ${isGhostChorus ? 'hsla(210,30%,55%,0.15)' : 'hsla(180,100%,67%,0.2)'}`,
             borderRadius: 4,
             padding: '1px 6px',
             fontSize: 9,
-            color: '#c0c0c0',
+            color: isGhostChorus ? '#7788aa' : '#c0c0c0',
             fontFamily: 'monospace',
             letterSpacing: '0.03em',
+            fontStyle: isGhostChorus ? 'italic' : 'normal',
           }}>
             {isOrch ? 'Conductor' : (node.actorGroup ? ACTOR_GROUP_LABELS[node.actorGroup] || node.actorGroup : node.id)}
           </div>
@@ -168,15 +245,15 @@ const Node3D = ({
         <Html position={[0, radius + 0.55, 0]} center distanceFactor={6} zIndexRange={[8, 0]}>
           <div style={{
             background: 'hsla(240,10%,6%,0.95)',
-            border: '1px solid hsla(180,100%,67%,0.4)',
+            border: `1px solid ${isGhostChorus ? 'hsla(210,30%,55%,0.35)' : 'hsla(180,100%,67%,0.4)'}`,
             borderRadius: 6,
             padding: '6px 10px',
             fontSize: 10,
             color: '#f0f0f0',
             fontFamily: 'monospace',
-            maxWidth: 200,
+            maxWidth: 220,
             whiteSpace: 'pre-wrap',
-            boxShadow: '0 0 12px hsla(180,100%,67%,0.2)',
+            boxShadow: isGhostChorus ? '0 0 15px hsla(210,30%,50%,0.12)' : '0 0 12px hsla(180,100%,67%,0.2)',
             pointerEvents: 'none',
           }}>
             {tooltip}
@@ -185,8 +262,9 @@ const Node3D = ({
         </Html>
       )}
 
-      {/* Point light for orchestrator */}
+      {/* Point light */}
       {isOrch && <pointLight color={color} intensity={2} distance={5} />}
+      {isGhostChorus && <pointLight color="#7799aa" intensity={0.25} distance={1} />}
 
       {/* Emission flash ring */}
       {emitPhase.current > 0.001 && (
@@ -194,7 +272,7 @@ const Node3D = ({
           <mesh ref={emitRingRef} rotation={[-Math.PI / 2, 0, 0]}>
             <ringGeometry args={[radius + 0.05, radius + 0.15, 32]} />
             <meshBasicMaterial
-              color={mode === 'acoustic' ? '#ff6633' : color}
+              color={isGhostChorus ? '#7799bb' : mode === 'acoustic' ? '#ff6633' : color}
               transparent
               opacity={0.5}
               side={THREE.DoubleSide}
@@ -203,7 +281,7 @@ const Node3D = ({
           </mesh>
           <pointLight
             ref={emitLightRef}
-            color={mode === 'acoustic' ? '#ff6633' : color}
+            color={isGhostChorus ? '#7799bb' : mode === 'acoustic' ? '#ff6633' : color}
             intensity={0}
             distance={3}
           />
@@ -216,7 +294,7 @@ const Node3D = ({
 // ─── Gravity Well Floor Rings ────────────────────────────────────────
 const GravityWellRings = ({ size, position }: { size: number; position: [number, number, number] }) => {
   const groupRef = useRef<THREE.Group>(null);
-  const rs = size * 0.003; // Schwarzschild-proportional in world units
+  const rs = size * 0.003;
   const radii = [rs * 1.2, rs * 2.2, rs * 3.5, rs * 5];
   
   useFrame((_, dt) => {
@@ -277,17 +355,14 @@ const Object3D = ({ obj, mode, hideLabels }: { obj: WorldObject; mode: Communica
               opacity={0.55}
             />
           </mesh>
-          {/* Inner energy glow */}
           <mesh>
             <boxGeometry args={[w * 0.95, height3D * 0.8, h * 0.95]} />
             <meshBasicMaterial color={MODE_COLORS[mode]} transparent opacity={0.08} depthWrite={false} />
           </mesh>
-          {/* Wireframe shell */}
           <mesh>
             <boxGeometry args={[w * 1.005, height3D * 1.01, h * 1.005]} />
             <meshBasicMaterial color={MODE_COLORS[mode]} wireframe transparent opacity={0.2} />
           </mesh>
-          {/* Graduated muffling bands */}
           {[0.3, 0.6, 0.9].map((offset, i) => (
             <mesh key={i} position={[0, (offset - 0.5) * height3D * 0.8, 0]}>
               <boxGeometry args={[w * 1.02, 0.01, h * 1.02]} />
@@ -297,7 +372,7 @@ const Object3D = ({ obj, mode, hideLabels }: { obj: WorldObject; mode: Communica
         </>
       )}
 
-      {/* Observability Lens: glass disc with prismatic ring */}
+      {/* Observability Lens */}
       {obj.type === 'lens' && (
         <>
           <mesh ref={meshRef}
@@ -307,17 +382,15 @@ const Object3D = ({ obj, mode, hideLabels }: { obj: WorldObject; mode: Communica
             <torusGeometry args={[Math.max(w, h) / 2, 0.04, 16, 32]} />
             <meshStandardMaterial color="#4ecdc4" emissive="#4ecdc4" emissiveIntensity={0.4} metalness={0.7} roughness={0.15} transparent opacity={0.75} />
           </mesh>
-          {/* Glass fill */}
           <mesh rotation={[-Math.PI / 2, 0, 0]}>
             <circleGeometry args={[Math.max(w, h) / 2 - 0.02, 32]} />
             <meshStandardMaterial color="#88ffee" emissive="#4ecdc4" emissiveIntensity={0.06} metalness={0.95} roughness={0.05} transparent opacity={0.1} side={THREE.DoubleSide} />
           </mesh>
-          {/* Focus point light */}
           <pointLight color="#4ecdc4" intensity={0.8} distance={1.5} />
         </>
       )}
 
-      {/* Specular Surface: polished mirror with reflection shimmer */}
+      {/* Specular Surface */}
       {obj.type === 'mirror' && (
         <group rotation={[0, surfAngle, 0]}>
           <mesh ref={meshRef}
@@ -327,12 +400,10 @@ const Object3D = ({ obj, mode, hideLabels }: { obj: WorldObject; mode: Communica
             <boxGeometry args={[w, 0.025, h]} />
             <meshStandardMaterial color="#e8f4fd" emissive="#8ecae6" emissiveIntensity={0.2} metalness={0.98} roughness={0.02} />
           </mesh>
-          {/* Reflective shimmer plane */}
           <mesh position={[0, 0.015, 0]} rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[w * 0.9, h * 0.9]} />
             <meshBasicMaterial color="#ffffff" transparent opacity={0.06} depthWrite={false} side={THREE.DoubleSide} />
           </mesh>
-          {/* Surface normal indicator */}
           <mesh position={[0, 0.18, 0]} rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.006, 0.006, 0.35, 6]} />
             <meshBasicMaterial color="#ffffff" transparent opacity={0.4} />
@@ -341,12 +412,11 @@ const Object3D = ({ obj, mode, hideLabels }: { obj: WorldObject; mode: Communica
             <coneGeometry args={[0.018, 0.045, 6]} />
             <meshBasicMaterial color="#ffffff" transparent opacity={0.4} />
           </mesh>
-          {/* Edge glow */}
           <pointLight color="#88ccff" intensity={0.5} distance={1} />
         </group>
       )}
 
-      {/* Invariant Mass: dense sphere with event horizon + gravity wells */}
+      {/* Invariant Mass */}
       {obj.type === 'mass' && (
         <>
           <mesh ref={meshRef}
@@ -356,12 +426,10 @@ const Object3D = ({ obj, mode, hideLabels }: { obj: WorldObject; mode: Communica
             <sphereGeometry args={[Math.max(w, h) / 2, 32, 32]} />
             <meshStandardMaterial color="#0a0020" emissive="#7c3aed" emissiveIntensity={0.6} metalness={0.8} roughness={0.2} transparent opacity={0.9} />
           </mesh>
-          {/* Event horizon shell */}
           <mesh>
             <sphereGeometry args={[Math.max(w, h) / 2 + 0.03, 24, 24]} />
             <meshBasicMaterial color="#9333ea" transparent opacity={0.08} side={THREE.BackSide} depthWrite={false} />
           </mesh>
-          {/* Core glow */}
           <pointLight color="#9333ea" intensity={1.5} distance={2.5} />
           <GravityWellRings size={obj.width + obj.height} position={[0, -height3D / 2 + 0.01, 0]} />
         </>
@@ -403,10 +471,8 @@ const Wavefront3D = ({ wf, objects }: { wf: Wavefront; objects: WorldObject[] })
   const opacity = Math.min(0.6, wf.energy * 0.7);
   if (opacity < 0.01 || (!wf.isBeam && r > 12)) return null;
 
-  // Emitter height: orchestrator at 0.3, agents at 0.15
   const emitterY = wf.sourceX === 400 && wf.sourceY === 280 ? 0.3 : 0.15;
 
-  // ── BEAM wavefront (mirror reflection): bright narrow cylinder ──
   if (wf.isBeam && wf.angle != null) {
     const beamLength = 0.4;
     const brightness = Math.min(1, wf.energy * 1.5);
@@ -425,7 +491,6 @@ const Wavefront3D = ({ wf, objects }: { wf: Wavefront; objects: WorldObject[] })
     );
   }
 
-  // ── ACOUSTIC: expanding wireframe SPHERE (omnidirectional pressure shell) ──
   if (wf.mode === 'acoustic') {
     const hue = 25 + (1 - wf.energy) * 15;
     const sat = 0.8 + wf.energy * 0.2;
@@ -450,16 +515,13 @@ const Wavefront3D = ({ wf, objects }: { wf: Wavefront; objects: WorldObject[] })
     );
   }
 
-  // ── LIGHT: thin transparent SPHERE shell (omnidirectional) ──
   if (wf.mode === 'light') {
     return (
       <group position={[px, emitterY, pz]}>
-        {/* Outer shell */}
         <mesh ref={meshRef}>
           <sphereGeometry args={[r, 32, 24]} />
           <meshBasicMaterial color={color} transparent opacity={opacity * 0.1} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
-        {/* Inner shell for thin-shell effect */}
         <mesh>
           <sphereGeometry args={[Math.max(0, r - 0.02), 32, 24]} />
           <meshBasicMaterial color={color} transparent opacity={opacity * 0.06} side={THREE.BackSide} depthWrite={false} />
@@ -468,7 +530,6 @@ const Wavefront3D = ({ wf, objects }: { wf: Wavefront; objects: WorldObject[] })
     );
   }
 
-  // ── GRAVITY: undulating SPHERE (omnidirectional spacetime disturbance) ──
   if (wf.mode === 'gravity') {
     return (
       <GravityWavefrontSphere
@@ -485,7 +546,6 @@ const Wavefront3D = ({ wf, objects }: { wf: Wavefront; objects: WorldObject[] })
   return null;
 };
 
-// Gravity wavefront sphere with vertex displacement
 const GravityWavefrontSphere = ({ r, position, opacity, objects, px, pz }: {
   r: number; position: [number, number, number]; opacity: number;
   objects: WorldObject[]; px: number; pz: number;
@@ -504,7 +564,6 @@ const GravityWavefrontSphere = ({ r, position, opacity, objects, px, pz }: {
       const y = pos.getY(i);
       const z = pos.getZ(i);
       const len = Math.sqrt(x * x + y * y + z * z) || 1;
-      // Sine ripple on surface
       const ripple = Math.sin(len * 8 - time * 2) * 0.03 * opacity;
       const scale = r / len;
       pos.setXYZ(i, x * scale + (x / len) * ripple, y * scale + (y / len) * ripple, z * scale + (z / len) * ripple);
@@ -536,7 +595,6 @@ const EpitaphEmbers = ({ color, birthAge }: { color: string; birthAge: number })
 
   useFrame(() => {
     if (!groupRef.current) return;
-    // Fade out after 2s
     groupRef.current.visible = birthAge < 2.5;
   });
 
@@ -582,12 +640,10 @@ const Pin3D = ({ pin, hideLabels }: { pin: ModalPin; hideLabels?: boolean }) => 
 
   useFrame((_, dt) => {
     birthAge.current += dt;
-    // Only update state at intervals to avoid excessive re-renders
     if (Math.floor(birthAge.current * 10) !== Math.floor(age * 10)) {
       setAge(birthAge.current);
     }
 
-    // Animate stem growing
     if (stemRef.current) {
       const stemProgress = Math.min(1, birthAge.current / 1.2);
       const eased = 1 - Math.pow(1 - stemProgress, 3);
@@ -595,7 +651,6 @@ const Pin3D = ({ pin, hideLabels }: { pin: ModalPin; hideLabels?: boolean }) => 
       stemRef.current.position.y = eased * 0.5;
     }
 
-    // Animate birth glow
     if (glowRef.current) {
       const glowPhase = birthAge.current < 1.5 ? Math.sin(birthAge.current * 4) * 2 + 2 : 0.5;
       glowRef.current.intensity = glowPhase;
@@ -606,13 +661,9 @@ const Pin3D = ({ pin, hideLabels }: { pin: ModalPin; hideLabels?: boolean }) => 
 
   return (
     <group position={[px, 1.2, pz]}>
-      {/* Ember particles during birth */}
       <EpitaphEmbers color={modeColor} birthAge={age} />
-
-      {/* Birth flash */}
       <pointLight ref={glowRef} color={modeColor} intensity={0} distance={3} />
 
-      {/* Crystallization point at base */}
       {age < 2 && (
         <mesh position={[0, -0.5, 0]}>
           <octahedronGeometry args={[0.04 + (1 - Math.min(1, age / 1.5)) * 0.06, 0]} />
@@ -625,13 +676,11 @@ const Pin3D = ({ pin, hideLabels }: { pin: ModalPin; hideLabels?: boolean }) => 
         </mesh>
       )}
 
-      {/* Stem line — grows upward */}
       <mesh ref={stemRef} position={[0, 0, 0]}>
         <cylinderGeometry args={[0.008, 0.015, 1, 6]} />
         <meshBasicMaterial color={modeColor} transparent opacity={Math.min(0.6, age * 0.5)} />
       </mesh>
 
-      {/* Card — fades in after stem grows */}
       {!hideLabels && cardOpacity > 0.01 && (
         <Html position={[0, 0.6, 0]} center distanceFactor={6} zIndexRange={[5, 0]}>
           <div style={{
@@ -683,7 +732,6 @@ const ConnectionLines = ({
 
       const points: THREE.Vector3[] = [];
       if (mode === 'gravity' && masses.length > 0) {
-        // Bezier curve bent toward masses
         const mx = (ox + ax) / 2;
         const mz = (oz + az) / 2;
         let pullX = 0, pullZ = 0, totalW = 0;
@@ -780,7 +828,6 @@ const CockpitCamera = ({ targetNode, onExit }: { targetNode: Node; onExit: () =>
     const onUp = (e: KeyboardEvent) => keys.current.delete(e.code);
 
     const onMouse = (e: MouseEvent) => {
-      // Always apply mouse look when in cockpit (locked or not)
       if (document.pointerLockElement) {
         yaw.current -= e.movementX * 0.002;
         pitch.current = Math.max(-1.4, Math.min(1.4, pitch.current - e.movementY * 0.002));
@@ -797,7 +844,6 @@ const CockpitCamera = ({ targetNode, onExit }: { targetNode: Node; onExit: () =>
       isLocked.current = !!document.pointerLockElement;
     };
 
-    // Also handle right-click drag as fallback when not locked
     let dragging = false;
     const onPointerDown = (e: PointerEvent) => {
       if (!document.pointerLockElement && e.button === 0) {
@@ -874,7 +920,7 @@ const StoryCameraController = ({ storyCamera }: { storyCamera: StoryCamera }) =>
   useFrame(() => {
     camera.position.lerp(posTarget.current, 0.04);
     const look = new THREE.Vector3().copy(camera.position);
-    look.lerp(lookTarget.current, 1); // target is absolute
+    look.lerp(lookTarget.current, 1);
     camera.lookAt(lookTarget.current.x, lookTarget.current.y, lookTarget.current.z);
   });
 
@@ -918,17 +964,11 @@ const Scene = ({
 
   return (
     <>
-      {/* Lighting */}
       <ambientLight intensity={0.15} />
       <directionalLight position={[5, 8, 3]} intensity={0.4} />
-
-      {/* Stars background */}
       <Stars radius={50} depth={30} count={2000} factor={3} fade speed={0.5} />
-
-      {/* Floor grid */}
       <Floor mode={mode} />
 
-      {/* Camera controls */}
       {storyCamera ? (
         <StoryCameraController storyCamera={storyCamera} />
       ) : cockpitNode ? (
@@ -946,7 +986,6 @@ const Scene = ({
         />
       )}
 
-      {/* Click plane for emission */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, -0.03, 0]}
@@ -957,7 +996,6 @@ const Scene = ({
         <meshBasicMaterial />
       </mesh>
 
-      {/* Connection lines */}
       {orchestratorNode && (
         <ConnectionLines
           orchestrator={orchestratorNode}
@@ -968,17 +1006,14 @@ const Scene = ({
         />
       )}
 
-      {/* Wavefronts */}
       {wavefronts.map(wf => (
         <Wavefront3D key={wf.id} wf={wf} objects={objects} />
       ))}
 
-      {/* World objects */}
       {objects.map(obj => (
         <Object3D key={obj.id} obj={obj} mode={mode} hideLabels={hideLabels} />
       ))}
 
-      {/* Nodes */}
       {nodes.map(node => (
         <Node3D
           key={node.id}
@@ -992,12 +1027,10 @@ const Scene = ({
         />
       ))}
 
-      {/* Modal pins */}
       {modalPins.map(pin => (
         <Pin3D key={pin.id} pin={pin} hideLabels={hideLabels} />
       ))}
 
-      {/* Story highlight */}
       {storyHighlightId && (() => {
         const hlObj = objects.find(o => o.id === storyHighlightId);
         return hlObj ? <StoryHighlight obj={hlObj} /> : null;
@@ -1020,30 +1053,22 @@ export const Canvas3D = (props: Canvas3DProps) => {
         <Scene {...props} />
       </Canvas>
 
-      {/* Cockpit overlay HUD */}
       {props.cockpitNodeId && (
         <div className="absolute inset-0 pointer-events-none z-10">
-          {/* Crosshair */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
             <div className="w-6 h-px bg-primary/40" />
             <div className="w-px h-6 bg-primary/40 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
           </div>
-
-          {/* Cockpit info */}
           <div className="absolute top-4 left-4 font-mono text-xs text-primary/70 space-y-1">
             <div>COCKPIT: {props.cockpitNodeId}</div>
             <div>WASD = fly · Mouse = look · ESC = exit</div>
           </div>
-
-          {/* Exit button */}
           <button
             className="absolute top-4 right-4 pointer-events-auto control-btn text-xs"
             onClick={props.onExitCockpit}
           >
             Exit Cockpit [ESC]
           </button>
-
-          {/* Vignette */}
           <div className="absolute inset-0 rounded-2xl"
             style={{
               background: 'radial-gradient(ellipse at center, transparent 50%, hsla(240,10%,4%,0.6) 100%)',
