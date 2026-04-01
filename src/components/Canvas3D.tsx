@@ -1079,41 +1079,52 @@ const Scene = ({
 
   return (
     <>
-      {/* Warm ambient fill — sunrise tone, omnidirectional */}
-      <hemisphereLight args={['#ffd9a0', '#1a1a3e', 0.35]} />
+      {/* Hemisphere ambient — warm sky, cool ground */}
+      <hemisphereLight args={['#ffe8c8', '#0a0a2a', 0.25]} />
 
-      {/* Cool key light — directed moonlight with shadow */}
+      {/* The Sun — distant star mesh */}
+      <group position={[80, 60, -40]}>
+        <mesh>
+          <sphereGeometry args={[4, 32, 32]} />
+          <meshBasicMaterial color="#fff4d6" />
+        </mesh>
+        {/* Solar corona glow */}
+        <mesh>
+          <sphereGeometry args={[5.5, 32, 32]} />
+          <meshBasicMaterial color="#ffdd88" transparent opacity={0.15} />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[7, 32, 32]} />
+          <meshBasicMaterial color="#ffcc66" transparent opacity={0.05} />
+        </mesh>
+        <pointLight color="#fff4d6" intensity={3} distance={200} decay={1} />
+      </group>
+
+      {/* Primary sunlight — directional from the sun's position, with shadow */}
       <directionalLight
-        position={[8, 12, 5]}
-        intensity={0.7}
-        color="#aaccff"
+        position={[80, 60, -40]}
+        intensity={1.2}
+        color="#fff0d0"
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
-        shadow-camera-far={50}
-        shadow-camera-left={-15}
-        shadow-camera-right={15}
-        shadow-camera-top={15}
-        shadow-camera-bottom={-15}
+        shadow-camera-far={80}
+        shadow-camera-left={-20}
+        shadow-camera-right={20}
+        shadow-camera-top={20}
+        shadow-camera-bottom={-20}
         shadow-bias={-0.002}
       />
 
-      {/* Warm fill from opposite side — low angle golden hour */}
+      {/* Cool fill from opposite side — reflected skylight */}
       <directionalLight
-        position={[-6, 4, -8]}
-        intensity={0.3}
-        color="#ffaa55"
+        position={[-40, 30, 30]}
+        intensity={0.2}
+        color="#8899cc"
       />
 
-      {/* Cool rim/back light for terrain edge definition */}
-      <directionalLight
-        position={[0, 2, -12]}
-        intensity={0.15}
-        color="#6688cc"
-      />
-
-      {/* Warm point light near center to give terrain a hearth glow */}
-      <pointLight position={[0, 3, 0]} intensity={0.4} color="#ff9944" distance={20} decay={2} />
+      {/* Warm hearth glow at center */}
+      <pointLight position={[0, 3, 0]} intensity={0.3} color="#ff9944" distance={20} decay={2} />
       <Stars radius={50} depth={30} count={2000} factor={3} fade speed={0.5} />
       <Terrain mode={mode} objects={objects} wavefronts={wavefronts} />
 
