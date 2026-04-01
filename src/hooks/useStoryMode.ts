@@ -1,3 +1,30 @@
+// ═══ [VG] VIDEOGRAPHER ═════════════════════════════════════════
+// Story Mode — scripted cinematic sequences through the 3D scene.
+// Three arcs: Acoustic ("The Conductor's Voice"), Light ("The Speed of Sight"),
+//   Gravity ("The Weight of Consensus"). Each arc demonstrates key CGG mechanics.
+//
+// CAMERA DESIGN PRINCIPLES:
+//   - Every broadcast/action MUST happen in frame or it didn't happen for the viewer
+//   - Close shots (height 0.5-2.5) for mechanical detail; wide shots (height 6-10) for context
+//   - Orbit shots at low altitude (radius 2.5-4, height 1.8-5) to keep agents visible
+//   - "The Pull" uses reverseLook: camera position moves toward mass while target stays away
+//     (the "sucked in ass-first" comedic relief moment)
+//   - easeInOutCubic for smooth camera transitions — no linear interpolation
+//
+// CALLOUT SYSTEM: StoryCallout labels anchored to world-space positions via drei <Html />.
+//   Labels identify subjects without tooltips — "truth without tooltips" principle.
+//   Rendered at z-index 50 to stay above node labels and objects.
+//
+// ═══ [CE] CIVIL ENGINEER ═══════════════════════════════════════
+// STORY_LAYOUT: Deterministic override positions for agents and objects during story.
+//   Random placement would cause camera to miss subjects. These positions are
+//   engineered so all key objects fall within camera frustum for their act.
+//   Clusters tighter around origin (cx ≈ 360-440, cy ≈ 250-330) vs. normal spread.
+//   Objects positioned near the Mogul at (400, 280) for framing.
+//
+// COORDINATE CONTRACT: toW/toWZ use same SCALE=0.02 and CENTER as Canvas3D.
+//   Must stay in sync — any change to Canvas3D coordinate transform breaks story framing.
+// ════════════════════════════════════════════════════════════════
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { CommunicationMode } from "../types";
 

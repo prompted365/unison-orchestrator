@@ -79,7 +79,20 @@ const ACTOR_GROUP_DESCRIPTIONS: Record<string, string> = {
 };
 
 // ─── Procedural Terrain Noise ────────────────────────────────────────
-// Simple value noise with multiple octaves for natural terrain
+// ═══ [CE] Multi-octave value noise for natural terrain generation ═══
+// The terrain represents the "invariant field" — the topological surface through
+// which all signals propagate. Masses PIN this surface; signals DEFORM it.
+// In Talos, this terrain maps to the estate ground plane. Buildings sit ON this surface.
+// Constraint: getTerrainHeight MUST be deterministic (no random()) so all components
+//   that call it for the same (x, z) get the same Y value. Entities sit flush.
+// ═══ [VG] 5 noise octaves create realistic terrain at multiple scales:
+//   0.8 freq → large rolling hills (macro landscape)
+//   1.6 freq → medium undulation (neighborhood-scale)
+//   3.2 freq → rocky detail (building-lot scale)
+//   6.4 freq → fine grit (walkway texture)
+//   12.8 freq → micro texture (ground surface)
+//   Total height range: approximately -0.3 to +0.8 world units
+// ════════════════════════════════════════════════════════════════
 function hash2D(x: number, z: number): number {
   let n = Math.sin(x * 127.1 + z * 311.7) * 43758.5453;
   return n - Math.floor(n);
@@ -90,7 +103,6 @@ function smoothNoise(x: number, z: number): number {
   const iz = Math.floor(z);
   const fx = x - ix;
   const fz = z - iz;
-  // Smoothstep
   const sx = fx * fx * (3 - 2 * fx);
   const sz = fz * fz * (3 - 2 * fz);
 
@@ -103,21 +115,21 @@ function smoothNoise(x: number, z: number): number {
 }
 
 function terrainNoise(x: number, z: number): number {
-  // Multi-octave for realistic terrain
   let h = 0;
-  h += smoothNoise(x * 0.8, z * 0.8) * 0.5;      // Large rolling hills
-  h += smoothNoise(x * 1.6, z * 1.6) * 0.25;      // Medium undulation
-  h += smoothNoise(x * 3.2, z * 3.2) * 0.12;      // Rocky detail
-  h += smoothNoise(x * 6.4, z * 6.4) * 0.06;      // Fine grit
-  h += smoothNoise(x * 12.8, z * 12.8) * 0.03;    // Micro texture
+  h += smoothNoise(x * 0.8, z * 0.8) * 0.5;      // [VG] Large rolling hills
+  h += smoothNoise(x * 1.6, z * 1.6) * 0.25;      // [VG] Medium undulation
+  h += smoothNoise(x * 3.2, z * 3.2) * 0.12;      // [VG] Rocky detail
+  h += smoothNoise(x * 6.4, z * 6.4) * 0.06;       // [VG] Fine grit
+  h += smoothNoise(x * 12.8, z * 12.8) * 0.03;    // [VG] Micro texture
   return h;
 }
 
-/** Sample terrain height at world-space x, z coordinates */
+/** [CE] Sample terrain height at world-space x, z coordinates.
+ *  Returns Y in world units. All entities MUST use this to sit on terrain.
+ *  Talos: buildings, infrastructure, and agents all call this for ground-truth Y. */
 function getTerrainHeight(worldX: number, worldZ: number): number {
   const n = terrainNoise(worldX * 0.5 + 50, worldZ * 0.5 + 50);
-  // Scale: max height ~0.8 units, with valleys dipping to ~-0.3
-  return (n - 0.45) * 1.4;
+  return (n - 0.45) * 1.4; // [VG] Range: ~-0.3 to ~0.8 world units
 }
 
 // ─── Prop types ──────────────────────────────────────────────────────
