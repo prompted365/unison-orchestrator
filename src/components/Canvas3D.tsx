@@ -90,6 +90,7 @@ interface Canvas3DProps {
   emittingAgentIds?: string[];
   storyCamera?: StoryCamera | null;
   storyHighlightId?: string | null;
+  storyCallouts?: StoryCallout[];
 }
 
 // ─── 3D Node (sphere + label) ────────────────────────────────────────
