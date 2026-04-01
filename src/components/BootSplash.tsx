@@ -177,7 +177,8 @@ export const BootSplash = ({ onComplete }: BootSplashProps) => {
 
   return (
     <div
-      className="fixed inset-0 z-[99999] flex items-center justify-center"
+      className="fixed inset-0 z-[99999] pointer-events-none flex items-center justify-center"
+      aria-hidden="true"
       style={{
         background: "#000",
         opacity: phase === "fadeout" ? 0 : 1,
