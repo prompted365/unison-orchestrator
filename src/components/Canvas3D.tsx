@@ -762,6 +762,7 @@ const Scene = ({
   cockpitNodeId, onEnterCockpit, onExitCockpit, onCanvasClick, emittingAgentIds,
   storyCamera, storyHighlightId
 }: Omit<Canvas3DProps, 'effects'>) => {
+  const hideLabels = !!storyCamera;
   const orchestratorNode = useMemo(() => nodes.find(n => n.type === 'orchestrator'), [nodes]);
   const agents = useMemo(() => nodes.filter(n => n.type === 'agent'), [nodes]);
   const masses = useMemo(() => objects.filter(o => o.type === 'mass'), [objects]);
