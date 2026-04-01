@@ -63,10 +63,15 @@ export const usePhysics = (mode: CommunicationMode) => {
       return Math.sqrt(dx * dx + dy * dy);
     },
 
-    // Graduated attenuation: muffling_per_hop model
+    // ═══ [CE] Graduated attenuation: muffling_per_hop model ═══
+    // Canonical CGG spec: effective_volume = signal_volume - (distance × muffling_per_hop)
+    // Here modeled as multiplicative: signal *= 0.6^crossings (equivalent for energy)
+    // Gravity bypasses ALL muffling — constitutional signals cannot be attenuated.
+    // Walls only — lenses, mirrors, masses do NOT attenuate.
+    // ═══ [VG] Each wall crossing visually dims the wavefront opacity by ~40% ═══
     computeAttenuation: (a: { x: number; y: number }, b: { x: number; y: number }, objects: WorldObject[]): number => {
-      if (mode === 'gravity') return 1; // gravity bypasses muffling
-      const MUFFLING_PER_HOP = 0.6;
+      if (mode === 'gravity') return 1; // [CE] gravity bypasses muffling — constitutional invariant
+      const MUFFLING_PER_HOP = 0.6; // [CE] canonical CGG value
       const walls = objects.filter(obj => obj.type === 'wall');
       let crossings = 0;
       for (const wall of walls) {
