@@ -106,7 +106,7 @@ export const UbiquityApp = () => {
     }));
   }, [simulation.agentSignals]);
 
-  const initializeScene = useCallback(() => {
+  const initializeScene = useCallback((forStory?: StoryBand) => {
     setNodes([]);
     setObjects([]);
     setModalPins([]);
@@ -124,7 +124,7 @@ export const UbiquityApp = () => {
     };
 
     const agents: Node[] = [];
-    const clusters = [
+    const clusterSource = forStory ? STORY_LAYOUT.clusters : [
       { cx: 310, cy: 210, n: 3 },
       { cx: 500, cy: 230, n: 3 },
       { cx: 360, cy: 370, n: 3 },
@@ -136,10 +136,10 @@ export const UbiquityApp = () => {
     const clusterGroups = ['ghost_chorus', 'economy_whisper', 'ecotone_gate', 'drift_tracker', 'epitaph_extractor'];
     let agentId = 0;
 
-    clusters.forEach((cluster, clusterIdx) => {
+    clusterSource.forEach((cluster, clusterIdx) => {
       for (let i = 0; i < cluster.n; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const distance = 10 + Math.random() * 36;
+        const angle = forStory ? (i / cluster.n) * Math.PI * 2 : Math.random() * Math.PI * 2;
+        const distance = forStory ? 12 + i * 10 : 10 + Math.random() * 36;
         const x = Math.max(16, Math.min(784, cluster.cx + Math.cos(angle) * distance));
         const y = Math.max(16, Math.min(544, cluster.cy + Math.sin(angle) * distance));
 
@@ -162,7 +162,12 @@ export const UbiquityApp = () => {
     });
 
     setNodes([orchestratorNode, ...agents]);
-    setObjects(getInitialObjects(mode));
+    
+    if (forStory) {
+      setObjects(STORY_LAYOUT.objects[forStory] as WorldObject[]);
+    } else {
+      setObjects(getInitialObjects(mode));
+    }
   }, [mode]);
 
   const getInitialObjects = (currentMode: CommunicationMode): WorldObject[] => {
