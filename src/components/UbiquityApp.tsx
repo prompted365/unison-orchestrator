@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { ModeSelector } from "./ModeSelector";
+import { UbiquityLogo } from "./UbiquityLogo";
 import { Canvas3D } from "./Canvas3D";
 import { Controls } from "./Controls";
 import { ManifoldDashboard } from "./ManifoldDashboard";
@@ -327,10 +328,11 @@ export const UbiquityApp = () => {
   return (
     <>
       {!bootDone && <BootSplash onComplete={() => setBootDone(true)} />}
-    <div className="h-screen flex flex-col overflow-hidden">
+    <div className="h-screen flex flex-col overflow-hidden" style={{ position: 'relative' }}>
       {/* Compact Header */}
-      <header className="flex items-center justify-between px-4 py-2 border-b border-primary/10 shrink-0 flex-wrap gap-2">
-        <div className="flex items-center gap-3 min-w-0">
+      <header className="flex items-center justify-between px-4 py-2 border-b border-primary/10 shrink-0 flex-wrap gap-2" style={{ position: 'relative', zIndex: 20, pointerEvents: 'auto' }}>
+        <div className="flex items-center gap-2 min-w-0">
+          <UbiquityLogo size={24} />
           <h1 className="text-xs sm:text-sm font-bold font-mono text-primary tracking-wider whitespace-nowrap">
             Constitution of Attention
           </h1>
@@ -377,7 +379,7 @@ export const UbiquityApp = () => {
       </header>
 
       {/* 3D Canvas — dominant viewport */}
-      <div className="flex-1 relative min-h-0">
+      <div className="flex-1 relative min-h-0" style={{ zIndex: 1 }}>
         <Canvas3D
           mode={mode}
           nodes={nodes}
@@ -407,7 +409,7 @@ export const UbiquityApp = () => {
       </div>
 
       {/* Controls + Explanation */}
-      <div className="shrink-0 px-4 py-3 space-y-2 border-t border-primary/10">
+      <div className="shrink-0 px-4 py-3 space-y-2 border-t border-primary/10" style={{ position: 'relative', zIndex: 20, pointerEvents: 'auto' }}>
         <Controls
           onBroadcast={handleBroadcast}
           onAddObject={handleAddObject}

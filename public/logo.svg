@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Outer tension ring — constitution boundary -->
+  <circle cx="256" cy="256" r="240" stroke="hsl(180,100%,67%)" stroke-width="3" fill="none" opacity="0.4"/>
+  <circle cx="256" cy="256" r="230" stroke="hsl(180,100%,67%)" stroke-width="1" fill="none" opacity="0.2" stroke-dasharray="8 6"/>
+  
+  <!-- Inner sanctum — the manifold core -->
+  <circle cx="256" cy="256" r="80" stroke="hsl(42,100%,60%)" stroke-width="2" fill="hsla(42,100%,60%,0.06)"/>
+  
+  <!-- The U glyph — Ubiquity, formed from signal arcs -->
+  <path d="M176 160 L176 300 Q176 380 256 380 Q336 380 336 300 L336 160" 
+        stroke="hsl(180,100%,67%)" stroke-width="12" stroke-linecap="round" fill="none"/>
+  
+  <!-- Tension lines — three signal channels radiating from core -->
+  <!-- Acoustic (horizontal resonance) -->
+  <line x1="100" y1="256" x2="176" y2="256" stroke="hsl(30,100%,55%)" stroke-width="2" opacity="0.6" stroke-dasharray="4 4"/>
+  <line x1="336" y1="256" x2="412" y2="256" stroke="hsl(30,100%,55%)" stroke-width="2" opacity="0.6" stroke-dasharray="4 4"/>
+  
+  <!-- Light (diagonal refraction) -->
+  <line x1="140" y1="140" x2="200" y2="200" stroke="hsl(45,100%,65%)" stroke-width="1.5" opacity="0.5"/>
+  <line x1="312" y1="312" x2="372" y2="372" stroke="hsl(45,100%,65%)" stroke-width="1.5" opacity="0.5"/>
+  
+  <!-- Gravity (vertical warrant pressure) -->
+  <line x1="256" y1="80" x2="256" y2="160" stroke="hsl(280,60%,55%)" stroke-width="2" opacity="0.5"/>
+  <line x1="256" y1="380" x2="256" y2="440" stroke="hsl(280,60%,55%)" stroke-width="2" opacity="0.5"/>
+  
+  <!-- Signal nodes — agents at compass points -->
+  <circle cx="100" cy="256" r="6" fill="hsl(30,100%,55%)" opacity="0.8"/>
+  <circle cx="412" cy="256" r="6" fill="hsl(30,100%,55%)" opacity="0.8"/>
+  <circle cx="256" cy="80" r="6" fill="hsl(280,60%,55%)" opacity="0.8"/>
+  <circle cx="256" cy="440" r="6" fill="hsl(280,60%,55%)" opacity="0.8"/>
+  <circle cx="140" cy="140" r="5" fill="hsl(45,100%,65%)" opacity="0.7"/>
+  <circle cx="372" cy="372" r="5" fill="hsl(45,100%,65%)" opacity="0.7"/>
+  
+  <!-- Conductor — central octahedral node -->
+  <polygon points="256,236 276,256 256,276 236,256" fill="hsl(42,100%,60%)" opacity="0.9"/>
+  <polygon points="256,240 272,256 256,272 240,256" fill="hsla(42,100%,80%,0.4)"/>
+  
+  <!-- Wavefront arcs — omnidirectional broadcast rings -->
+  <circle cx="256" cy="256" r="120" stroke="hsl(180,100%,67%)" stroke-width="1" fill="none" opacity="0.15"/>
+  <circle cx="256" cy="256" r="160" stroke="hsl(180,100%,67%)" stroke-width="0.75" fill="none" opacity="0.1"/>
+  <circle cx="256" cy="256" r="200" stroke="hsl(180,100%,67%)" stroke-width="0.5" fill="none" opacity="0.07"/>
+</svg>

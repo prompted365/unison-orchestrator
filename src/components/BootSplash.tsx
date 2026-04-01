@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from "react";
+import { UbiquityLogo } from "./UbiquityLogo";
 
 interface BootSplashProps {
   onComplete: () => void;
@@ -194,9 +195,10 @@ export const BootSplash = ({ onComplete }: BootSplashProps) => {
       {/* Title card */}
       {phase === "title" && (
         <div
-          className="flex flex-col items-center gap-3"
+          className="flex flex-col items-center gap-4"
           style={{ opacity: titleOpacity }}
         >
+          <UbiquityLogo size={64} />
           <h1
             className="text-3xl sm:text-5xl font-bold font-mono tracking-widest"
             style={{ color: "hsl(180, 100%, 67%)" }}
