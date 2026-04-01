@@ -155,7 +155,14 @@ export const usePhysics = (mode: CommunicationMode) => {
         }));
     },
 
-    // Mirror reflection: proper specular reflection using surface normal
+    // ═══ [CE] Mirror reflection — specular reflection for light band ═══
+    // Canonical: Specular Surface — "governance structures that intentionally redirect attention."
+    //   Proper specular reflection: r = i - 2(i·n)n where n is surface normal.
+    //   Spawns isBeam=true wavefront that translates directionally instead of expanding.
+    //   energy 0.85 — mirrors are highly efficient (85% energy preservation).
+    // ═══ [VG] Reflected beams render as tight cylinders with bright core — reads as ═══
+    //   "directed energy" vs. diffuse broadcast. Fundamentally different silhouette.
+    // ════════════════════════════════════════════════════════════════════════════
     computeMirrorReflections: (wavefrontX: number, wavefrontY: number, wavefrontRadius: number, objects: WorldObject[]): Array<{ x: number; y: number; angle: number; energy: number; objectId: string }> => {
       if (mode !== 'light') return [];
       return objects
@@ -170,20 +177,19 @@ export const usePhysics = (mode: CommunicationMode) => {
           const cx = mirror.x + mirror.width / 2;
           const cy = mirror.y + mirror.height / 2;
 
-          // Surface normal from surfaceAngle or inferred from aspect ratio
+          // [CE] Surface normal from surfaceAngle or inferred from aspect ratio
           const surfAngle = mirror.surfaceAngle ?? (mirror.width > mirror.height ? 0 : Math.PI / 2);
-          // Normal is perpendicular to surface
           const nx = Math.cos(surfAngle + Math.PI / 2);
           const ny = Math.sin(surfAngle + Math.PI / 2);
 
-          // Incident direction (from wavefront source toward mirror center)
+          // [CE] Incident direction (from wavefront source toward mirror center)
           const dx = cx - wavefrontX;
           const dy = cy - wavefrontY;
           const len = Math.sqrt(dx * dx + dy * dy) || 1;
           const ix = dx / len;
           const iy = dy / len;
 
-          // Specular reflection: r = i - 2(i·n)n
+          // [CE] Specular reflection: r = i - 2(i·n)n
           const dot = ix * nx + iy * ny;
           const rx = ix - 2 * dot * nx;
           const ry = iy - 2 * dot * ny;
@@ -193,7 +199,7 @@ export const usePhysics = (mode: CommunicationMode) => {
             x: cx,
             y: cy,
             angle: reflAngle,
-            energy: 0.85, // mirrors are highly efficient
+            energy: 0.85, // [CE] mirrors preserve 85% energy
             objectId: mirror.id
           };
         });
