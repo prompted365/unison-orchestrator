@@ -13,37 +13,36 @@ export const StoryOverlay = ({
   currentAct, totalActs, actProgress, narration, onSkip, onExit,
 }: StoryOverlayProps) => {
   return (
-    <div className="absolute inset-0 pointer-events-none z-[9999] flex flex-col justify-between">
+    <div className="absolute inset-0 pointer-events-none z-[2147483000] flex flex-col justify-between">
       {/* Top bar: progress + controls */}
-      <div className="flex items-center gap-2 px-4 pt-2">
+      <div className="flex items-center gap-2 px-4 pt-3 sm:px-5 sm:pt-4">
         <div className="flex items-center gap-1 flex-1">
           {Array.from({ length: totalActs }).map((_, i) => (
-            <div key={i} className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'hsla(0,0%,100%,0.1)' }}>
+            <div key={i} className="flex-1 h-1.5 rounded-full overflow-hidden bg-muted/20">
               <div
-                className="h-full rounded-full transition-all duration-300"
+                className="h-full rounded-full transition-all duration-300 bg-primary/80"
                 style={{
                   width: i < currentAct ? '100%' : i === currentAct ? `${actProgress * 100}%` : '0%',
-                  background: 'hsla(180,100%,67%,0.7)',
                 }}
               />
             </div>
           ))}
         </div>
 
-        <span className="text-xs font-mono text-muted-foreground/70 mx-2 whitespace-nowrap">
+        <span className="text-xs sm:text-sm font-medium text-muted-foreground/90 mx-2 whitespace-nowrap tracking-wide">
           Act {currentAct + 1}/{totalActs}
         </span>
 
-        <div className="flex gap-1.5 pointer-events-auto">
+        <div className="flex gap-2 pointer-events-auto">
           <button
             onClick={onSkip}
-            className="px-3 py-1 rounded-full text-xs font-mono bg-muted/40 text-muted-foreground hover:bg-muted/60 border border-primary/10 transition-colors"
+            className="px-3.5 py-2 rounded-full text-xs sm:text-sm font-medium bg-background/90 text-foreground hover:bg-muted border border-primary/20 transition-colors backdrop-blur-md"
           >
             Skip ▸
           </button>
           <button
             onClick={onExit}
-            className="px-3 py-1 rounded-full text-xs font-mono bg-destructive/20 text-destructive-foreground hover:bg-destructive/40 border border-destructive/20 transition-colors"
+            className="px-3.5 py-2 rounded-full text-xs sm:text-sm font-medium bg-background/90 text-foreground hover:bg-muted border border-primary/20 transition-colors backdrop-blur-md"
           >
             Exit Story
           </button>
@@ -52,19 +51,18 @@ export const StoryOverlay = ({
 
       {/* Bottom: narration card */}
       {narration && (
-        <div className="flex justify-center pb-6 px-4">
+        <div className="flex justify-center pb-8 px-4 sm:px-6">
           <div
-            className="max-w-xl w-full rounded-lg border border-primary/20 px-6 py-5 font-mono"
+            className="pointer-events-auto max-w-3xl w-full rounded-2xl border border-primary/25 bg-background/95 px-6 py-5 sm:px-8 sm:py-6 shadow-2xl backdrop-blur-xl"
             style={{
-              background: 'hsla(240,10%,4%,0.92)',
-              backdropFilter: 'blur(16px)',
               animation: 'fadeInUp 0.6s ease-out',
+              boxShadow: '0 20px 60px hsl(var(--background) / 0.65), 0 0 0 1px hsl(var(--primary) / 0.12)',
             }}
           >
-            <div className="text-sm font-bold text-primary mb-2 tracking-wider uppercase">
+            <div className="text-sm sm:text-base font-semibold text-primary mb-2 tracking-[0.18em] uppercase">
               {narration.title}
             </div>
-            <div className="text-sm leading-relaxed text-muted-foreground/90">
+            <div className="text-base sm:text-lg leading-7 sm:leading-8 text-foreground/92 font-medium text-balance">
               {narration.body}
             </div>
           </div>

@@ -153,7 +153,7 @@ const Node3D = ({
 
       {/* Hover tooltip */}
       {hovered && (
-        <Html position={[0, radius + 0.55, 0]} center distanceFactor={6}>
+        <Html position={[0, radius + 0.55, 0]} center distanceFactor={6} zIndexRange={[14, 0]}>
           <div style={{
             background: 'hsla(240,10%,6%,0.95)',
             border: '1px solid hsla(180,100%,67%,0.5)',
