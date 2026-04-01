@@ -131,45 +131,48 @@ const Node3D = ({
         </mesh>
       )}
 
-      {/* Label always visible */}
-      <Html
-        position={[0, radius + 0.2, 0]}
-        center
-        distanceFactor={8}
-        zIndexRange={[12, 0]}
-        style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}
-      >
-        <div style={{
-          background: 'hsla(240,10%,4%,0.85)',
-          border: '1px solid hsla(180,100%,67%,0.3)',
-          borderRadius: 6,
-          padding: '2px 8px',
-          fontSize: 10,
-          color: '#e0e0e0',
-          fontFamily: 'monospace',
-        }}>
-          {isOrch ? 'Conductor' : (node.actorGroup ? ACTOR_GROUP_LABELS[node.actorGroup] || node.actorGroup : node.id)}
-        </div>
-      </Html>
+      {/* Label — hidden during story mode */}
+      {!hideLabels && (
+        <Html
+          position={[0, radius + 0.2, 0]}
+          center
+          distanceFactor={8}
+          zIndexRange={[5, 0]}
+          style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}
+        >
+          <div style={{
+            background: 'hsla(240,10%,4%,0.75)',
+            border: '1px solid hsla(180,100%,67%,0.2)',
+            borderRadius: 4,
+            padding: '1px 6px',
+            fontSize: 9,
+            color: '#c0c0c0',
+            fontFamily: 'monospace',
+            letterSpacing: '0.03em',
+          }}>
+            {isOrch ? 'Conductor' : (node.actorGroup ? ACTOR_GROUP_LABELS[node.actorGroup] || node.actorGroup : node.id)}
+          </div>
+        </Html>
+      )}
 
       {/* Hover tooltip */}
-      {hovered && (
-        <Html position={[0, radius + 0.55, 0]} center distanceFactor={6} zIndexRange={[14, 0]}>
+      {hovered && !hideLabels && (
+        <Html position={[0, radius + 0.55, 0]} center distanceFactor={6} zIndexRange={[8, 0]}>
           <div style={{
             background: 'hsla(240,10%,6%,0.95)',
-            border: '1px solid hsla(180,100%,67%,0.5)',
-            borderRadius: 8,
-            padding: '8px 12px',
-            fontSize: 11,
+            border: '1px solid hsla(180,100%,67%,0.4)',
+            borderRadius: 6,
+            padding: '6px 10px',
+            fontSize: 10,
             color: '#f0f0f0',
             fontFamily: 'monospace',
-            maxWidth: 220,
+            maxWidth: 200,
             whiteSpace: 'pre-wrap',
-            boxShadow: '0 0 20px hsla(180,100%,67%,0.3)',
+            boxShadow: '0 0 12px hsla(180,100%,67%,0.2)',
             pointerEvents: 'none',
           }}>
             {tooltip}
-            <div style={{ fontSize: 9, color: '#888', marginTop: 4 }}>Double-click → Cockpit</div>
+            <div style={{ fontSize: 8, color: '#888', marginTop: 3 }}>Double-click → Cockpit</div>
           </div>
         </Html>
       )}
