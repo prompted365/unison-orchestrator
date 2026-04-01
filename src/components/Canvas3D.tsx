@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Html, Stars, Line } from "@react-three/drei";
 import * as THREE from "three";
 import { CommunicationMode, Node, WorldObject, ModalPin, Effect, Wavefront, AgentSignalState } from "../types";
-import { StoryCamera } from "../hooks/useStoryMode";
+import { StoryCamera, StoryCallout } from "../hooks/useStoryMode";
 
 // ─── Constants ───────────────────────────────────────────────────────
 const SCALE = 0.02;
