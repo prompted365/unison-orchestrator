@@ -251,7 +251,7 @@ const Object3D = ({ obj, mode, hideLabels }: { obj: WorldObject; mode: Communica
 
   return (
     <group position={[px, height3D / 2, pz]}>
-      {/* Permission Gate: concrete-rough box + wireframe overlay */}
+      {/* Attenuation Boundary: graduated semi-transparent energy barrier */}
       {obj.type === 'wall' && (
         <>
           <mesh ref={meshRef}
@@ -259,54 +259,86 @@ const Object3D = ({ obj, mode, hideLabels }: { obj: WorldObject; mode: Communica
             onPointerOut={() => setHovered(false)}
           >
             <boxGeometry args={[w, height3D, h]} />
-            <meshStandardMaterial color="#3a3a3a" emissive={MODE_COLORS[mode]} emissiveIntensity={0.08} metalness={0.05} roughness={0.92} />
+            <meshStandardMaterial
+              color="#1a1a2e"
+              emissive={MODE_COLORS[mode]}
+              emissiveIntensity={0.15}
+              metalness={0.1}
+              roughness={0.7}
+              transparent
+              opacity={0.55}
+            />
           </mesh>
+          {/* Inner energy glow */}
+          <mesh>
+            <boxGeometry args={[w * 0.95, height3D * 0.8, h * 0.95]} />
+            <meshBasicMaterial color={MODE_COLORS[mode]} transparent opacity={0.08} depthWrite={false} />
+          </mesh>
+          {/* Wireframe shell */}
           <mesh>
             <boxGeometry args={[w * 1.005, height3D * 1.01, h * 1.005]} />
-            <meshBasicMaterial color={MODE_COLORS[mode]} wireframe transparent opacity={0.15} />
+            <meshBasicMaterial color={MODE_COLORS[mode]} wireframe transparent opacity={0.2} />
           </mesh>
+          {/* Graduated muffling bands */}
+          {[0.3, 0.6, 0.9].map((offset, i) => (
+            <mesh key={i} position={[0, (offset - 0.5) * height3D * 0.8, 0]}>
+              <boxGeometry args={[w * 1.02, 0.01, h * 1.02]} />
+              <meshBasicMaterial color={MODE_COLORS[mode]} transparent opacity={0.3 - i * 0.08} depthWrite={false} />
+            </mesh>
+          ))}
         </>
       )}
 
-      {/* Observability Lens: torus + glass disc */}
+      {/* Observability Lens: glass disc with prismatic ring */}
       {obj.type === 'lens' && (
         <>
           <mesh ref={meshRef}
             onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
             onPointerOut={() => setHovered(false)}
           >
-            <torusGeometry args={[Math.max(w, h) / 2, 0.04, 12, 32]} />
-            <meshStandardMaterial color="#4ecdc4" emissive="#4ecdc4" emissiveIntensity={0.3} metalness={0.6} roughness={0.2} transparent opacity={0.7} />
+            <torusGeometry args={[Math.max(w, h) / 2, 0.04, 16, 32]} />
+            <meshStandardMaterial color="#4ecdc4" emissive="#4ecdc4" emissiveIntensity={0.4} metalness={0.7} roughness={0.15} transparent opacity={0.75} />
           </mesh>
+          {/* Glass fill */}
           <mesh rotation={[-Math.PI / 2, 0, 0]}>
             <circleGeometry args={[Math.max(w, h) / 2 - 0.02, 32]} />
-            <meshStandardMaterial color="#66eeee" emissive="#4ecdc4" emissiveIntensity={0.05} metalness={0.9} roughness={0.1} transparent opacity={0.12} side={THREE.DoubleSide} />
+            <meshStandardMaterial color="#88ffee" emissive="#4ecdc4" emissiveIntensity={0.06} metalness={0.95} roughness={0.05} transparent opacity={0.1} side={THREE.DoubleSide} />
           </mesh>
+          {/* Focus point light */}
+          <pointLight color="#4ecdc4" intensity={0.8} distance={1.5} />
         </>
       )}
 
-      {/* Mirror: reflective plane + surface normal indicator */}
+      {/* Specular Surface: polished mirror with reflection shimmer */}
       {obj.type === 'mirror' && (
         <group rotation={[0, surfAngle, 0]}>
           <mesh ref={meshRef}
             onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
             onPointerOut={() => setHovered(false)}
           >
-            <boxGeometry args={[w, 0.02, h]} />
-            <meshStandardMaterial color="#d0e8f8" emissive="#8ecae6" emissiveIntensity={0.15} metalness={0.95} roughness={0.05} />
+            <boxGeometry args={[w, 0.025, h]} />
+            <meshStandardMaterial color="#e8f4fd" emissive="#8ecae6" emissiveIntensity={0.2} metalness={0.98} roughness={0.02} />
           </mesh>
-          <mesh position={[0, 0.15, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.008, 0.008, 0.3, 6]} />
-            <meshBasicMaterial color="#ffffff" transparent opacity={0.5} />
+          {/* Reflective shimmer plane */}
+          <mesh position={[0, 0.015, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[w * 0.9, h * 0.9]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.06} depthWrite={false} side={THREE.DoubleSide} />
           </mesh>
-          <mesh position={[0, 0.31, 0]} rotation={[Math.PI, 0, 0]}>
-            <coneGeometry args={[0.02, 0.05, 6]} />
-            <meshBasicMaterial color="#ffffff" transparent opacity={0.5} />
+          {/* Surface normal indicator */}
+          <mesh position={[0, 0.18, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.006, 0.006, 0.35, 6]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.4} />
           </mesh>
+          <mesh position={[0, 0.36, 0]} rotation={[Math.PI, 0, 0]}>
+            <coneGeometry args={[0.018, 0.045, 6]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.4} />
+          </mesh>
+          {/* Edge glow */}
+          <pointLight color="#88ccff" intensity={0.5} distance={1} />
         </group>
       )}
 
-      {/* Invariant Mass: dark sphere + concentric gravity well rings */}
+      {/* Invariant Mass: dense sphere with event horizon + gravity wells */}
       {obj.type === 'mass' && (
         <>
           <mesh ref={meshRef}
@@ -314,8 +346,15 @@ const Object3D = ({ obj, mode, hideLabels }: { obj: WorldObject; mode: Communica
             onPointerOut={() => setHovered(false)}
           >
             <sphereGeometry args={[Math.max(w, h) / 2, 32, 32]} />
-            <meshStandardMaterial color="#1a0033" emissive="#6b21a8" emissiveIntensity={0.5} metalness={0.7} roughness={0.3} transparent opacity={0.85} />
+            <meshStandardMaterial color="#0a0020" emissive="#7c3aed" emissiveIntensity={0.6} metalness={0.8} roughness={0.2} transparent opacity={0.9} />
           </mesh>
+          {/* Event horizon shell */}
+          <mesh>
+            <sphereGeometry args={[Math.max(w, h) / 2 + 0.03, 24, 24]} />
+            <meshBasicMaterial color="#9333ea" transparent opacity={0.08} side={THREE.BackSide} depthWrite={false} />
+          </mesh>
+          {/* Core glow */}
+          <pointLight color="#9333ea" intensity={1.5} distance={2.5} />
           <GravityWellRings size={obj.width + obj.height} position={[0, -height3D / 2 + 0.01, 0]} />
         </>
       )}
@@ -473,21 +512,119 @@ const GravityWavefrontSphere = ({ r, position, opacity, objects, px, pz }: {
   );
 };
 
-// ─── 3D Modal Pin (floating card) ────────────────────────────────────
+// ─── Epitaph Ember Particles ─────────────────────────────────────────
+const EpitaphEmbers = ({ color, birthAge }: { color: string; birthAge: number }) => {
+  const groupRef = useRef<THREE.Group>(null);
+  const particles = useMemo(() => {
+    return Array.from({ length: 14 }, (_, i) => ({
+      id: i,
+      angle: (i / 14) * Math.PI * 2 + Math.random() * 0.4,
+      speed: 0.3 + Math.random() * 0.7,
+      drift: (Math.random() - 0.5) * 0.3,
+      size: 0.015 + Math.random() * 0.02,
+      delay: Math.random() * 0.3,
+    }));
+  }, []);
+
+  useFrame(() => {
+    if (!groupRef.current) return;
+    // Fade out after 2s
+    groupRef.current.visible = birthAge < 2.5;
+  });
+
+  if (birthAge > 2.5) return null;
+
+  return (
+    <group ref={groupRef} position={[0, -0.5, 0]}>
+      {particles.map(p => {
+        const t = Math.max(0, birthAge - p.delay);
+        if (t <= 0) return null;
+        const progress = Math.min(t / 1.8, 1);
+        const y = progress * 1.2 * p.speed;
+        const x = Math.sin(p.angle) * (1 - progress) * 0.3 + p.drift * progress;
+        const z = Math.cos(p.angle) * (1 - progress) * 0.3;
+        const opacity = progress < 0.7 ? 1 : (1 - (progress - 0.7) / 0.3);
+        const scale = p.size * (1 - progress * 0.6);
+
+        return (
+          <mesh key={p.id} position={[x, y, z]}>
+            <sphereGeometry args={[scale, 6, 6]} />
+            <meshBasicMaterial
+              color={progress < 0.4 ? '#ff4400' : progress < 0.7 ? '#ffaa22' : color}
+              transparent
+              opacity={opacity * 0.9}
+              depthWrite={false}
+            />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+};
+
+// ─── 3D Modal Pin (Epitaph — burns into existence) ───────────────────
 const Pin3D = ({ pin, hideLabels }: { pin: ModalPin; hideLabels?: boolean }) => {
   const px = toWorld(pin.x - CENTER_X);
   const pz = toWorld(pin.y - CENTER_Y);
   const modeColor = pin.mode === 'acoustic' ? '#ff9933' : pin.mode === 'light' ? '#4ecdc4' : '#9333ea';
+  const birthAge = useRef(0);
+  const [age, setAge] = useState(0);
+  const stemRef = useRef<THREE.Mesh>(null);
+  const glowRef = useRef<THREE.PointLight>(null);
+
+  useFrame((_, dt) => {
+    birthAge.current += dt;
+    // Only update state at intervals to avoid excessive re-renders
+    if (Math.floor(birthAge.current * 10) !== Math.floor(age * 10)) {
+      setAge(birthAge.current);
+    }
+
+    // Animate stem growing
+    if (stemRef.current) {
+      const stemProgress = Math.min(1, birthAge.current / 1.2);
+      const eased = 1 - Math.pow(1 - stemProgress, 3);
+      stemRef.current.scale.set(1, eased, 1);
+      stemRef.current.position.y = eased * 0.5;
+    }
+
+    // Animate birth glow
+    if (glowRef.current) {
+      const glowPhase = birthAge.current < 1.5 ? Math.sin(birthAge.current * 4) * 2 + 2 : 0.5;
+      glowRef.current.intensity = glowPhase;
+    }
+  });
+
+  const cardOpacity = Math.min(1, Math.max(0, (age - 1.0) / 0.8));
 
   return (
     <group position={[px, 1.2, pz]}>
-      {/* Stem line */}
-      <mesh>
-        <cylinderGeometry args={[0.01, 0.01, 1, 6]} />
-        <meshBasicMaterial color={modeColor} transparent opacity={0.4} />
+      {/* Ember particles during birth */}
+      <EpitaphEmbers color={modeColor} birthAge={age} />
+
+      {/* Birth flash */}
+      <pointLight ref={glowRef} color={modeColor} intensity={0} distance={3} />
+
+      {/* Crystallization point at base */}
+      {age < 2 && (
+        <mesh position={[0, -0.5, 0]}>
+          <octahedronGeometry args={[0.04 + (1 - Math.min(1, age / 1.5)) * 0.06, 0]} />
+          <meshBasicMaterial
+            color={age < 0.8 ? '#ff6600' : modeColor}
+            transparent
+            opacity={Math.max(0, 1 - age / 2)}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
+
+      {/* Stem line — grows upward */}
+      <mesh ref={stemRef} position={[0, 0, 0]}>
+        <cylinderGeometry args={[0.008, 0.015, 1, 6]} />
+        <meshBasicMaterial color={modeColor} transparent opacity={Math.min(0.6, age * 0.5)} />
       </mesh>
 
-      {!hideLabels && (
+      {/* Card — fades in after stem grows */}
+      {!hideLabels && cardOpacity > 0.01 && (
         <Html position={[0, 0.6, 0]} center distanceFactor={6} zIndexRange={[5, 0]}>
           <div style={{
             background: 'hsla(240,10%,4%,0.9)',
@@ -498,6 +635,9 @@ const Pin3D = ({ pin, hideLabels }: { pin: ModalPin; hideLabels?: boolean }) => 
             fontFamily: 'monospace',
             boxShadow: `0 2px 12px ${modeColor}22`,
             pointerEvents: 'none',
+            opacity: cardOpacity,
+            transform: `translateY(${(1 - cardOpacity) * 8}px)`,
+            transition: 'opacity 0.3s, transform 0.3s',
           }}>
             <div style={{ fontWeight: 'bold', fontSize: 9, color: modeColor, marginBottom: 3 }}>
               {pin.title}
