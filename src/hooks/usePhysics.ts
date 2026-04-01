@@ -132,7 +132,11 @@ export const usePhysics = (mode: CommunicationMode) => {
         });
     },
 
-    // Lens focus: returns multiplier and focal point
+    // ═══ [CE] Lens focus — light band only ═══
+    // Canonical: Observability Lens — concentrates diffuse signal toward specific recipients.
+    //   "Selective amplification without censorship." The signal still exists; it's concentrated.
+    //   focusFactor > 1 means energy is AMPLIFIED through the lens.
+    // ═══ [VG] Lens interaction spawns a new, brighter wavefront from lens position ═══
     computeLensFocus: (wavefrontX: number, wavefrontY: number, wavefrontRadius: number, objects: WorldObject[]): Array<{ x: number; y: number; focusFactor: number; objectId: string }> => {
       if (mode !== 'light') return [];
       return objects
@@ -141,12 +145,12 @@ export const usePhysics = (mode: CommunicationMode) => {
           const cx = lens.x + lens.width / 2;
           const cy = lens.y + lens.height / 2;
           const dist = Math.sqrt((cx - wavefrontX) ** 2 + (cy - wavefrontY) ** 2);
-          return Math.abs(dist - wavefrontRadius) < 15;
+          return Math.abs(dist - wavefrontRadius) < 15; // [CE] 15px tolerance for wavefront-lens intersection
         })
         .map(lens => ({
           x: lens.x + lens.width / 2,
           y: lens.y + lens.height / 2,
-          focusFactor: 1.6,
+          focusFactor: 1.6, // [CE] 60% energy amplification through lens
           objectId: lens.id
         }));
     },
