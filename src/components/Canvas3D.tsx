@@ -310,15 +310,25 @@ const Node3D = ({
 // ─── Gravity Well Floor Rings ────────────────────────────────────────
 const GravityWellRings = ({ size, position }: { size: number; position: [number, number, number] }) => {
   const groupRef = useRef<THREE.Group>(null);
-  const rs = size * 0.003;
-  const radii = [rs * 1.2, rs * 2.2, rs * 3.5, rs * 5];
-  useFrame((_, dt) => { if (groupRef.current) groupRef.current.rotation.y += dt * 0.08; });
+  const rs = size * 0.004;
+  const radii = [rs * 1.5, rs * 2.8, rs * 4.5, rs * 6.5, rs * 9];
+  useFrame((_, dt) => {
+    if (!groupRef.current) return;
+    groupRef.current.rotation.y += dt * 0.12;
+    // Pulse the rings
+    groupRef.current.children.forEach((child, i) => {
+      const m = child as THREE.Mesh;
+      const mat = m.material as THREE.MeshBasicMaterial;
+      const pulse = Math.sin(Date.now() * 0.002 + i * 0.8) * 0.1;
+      mat.opacity = Math.max(0.05, (0.45 - i * 0.08) + pulse);
+    });
+  });
   return (
     <group ref={groupRef} position={position} rotation={[-Math.PI / 2, 0, 0]}>
       {radii.map((r, i) => (
         <mesh key={i}>
-          <ringGeometry args={[r, r + 0.015, 64]} />
-          <meshBasicMaterial color="#9333ea" transparent opacity={0.35 - i * 0.07} side={THREE.DoubleSide} depthWrite={false} />
+          <ringGeometry args={[r, r + 0.02, 64]} />
+          <meshBasicMaterial color={i < 2 ? "#a855f7" : "#7c3aed"} transparent opacity={0.45 - i * 0.08} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
       ))}
     </group>
