@@ -487,26 +487,28 @@ const Pin3D = ({ pin, hideLabels }: { pin: ModalPin; hideLabels?: boolean }) => 
         <meshBasicMaterial color={modeColor} transparent opacity={0.4} />
       </mesh>
 
-      <Html position={[0, 0.6, 0]} center distanceFactor={6}>
-        <div style={{
-          background: 'hsla(240,10%,4%,0.95)',
-          border: `1px solid ${modeColor}66`,
-          borderRadius: 8,
-          padding: '8px 12px',
-          maxWidth: 200,
-          fontFamily: 'monospace',
-          boxShadow: `0 4px 20px ${modeColor}33`,
-          pointerEvents: 'none',
-        }}>
-          <div style={{ fontWeight: 'bold', fontSize: 10, color: modeColor, marginBottom: 4 }}>
-            {pin.title}
+      {!hideLabels && (
+        <Html position={[0, 0.6, 0]} center distanceFactor={6} zIndexRange={[5, 0]}>
+          <div style={{
+            background: 'hsla(240,10%,4%,0.9)',
+            border: `1px solid ${modeColor}44`,
+            borderRadius: 6,
+            padding: '6px 10px',
+            maxWidth: 180,
+            fontFamily: 'monospace',
+            boxShadow: `0 2px 12px ${modeColor}22`,
+            pointerEvents: 'none',
+          }}>
+            <div style={{ fontWeight: 'bold', fontSize: 9, color: modeColor, marginBottom: 3 }}>
+              {pin.title}
+            </div>
+            <div style={{ fontSize: 8, color: '#aaa', marginBottom: 3, whiteSpace: 'pre-wrap' }}>
+              {pin.body}
+            </div>
+            <div style={{ fontSize: 7, color: '#777' }}>{pin.tags}</div>
           </div>
-          <div style={{ fontSize: 9, color: '#bbb', marginBottom: 4, whiteSpace: 'pre-wrap' }}>
-            {pin.body}
-          </div>
-          <div style={{ fontSize: 8, color: '#888' }}>{pin.tags}</div>
-        </div>
-      </Html>
+        </Html>
+      )}
     </group>
   );
 };
