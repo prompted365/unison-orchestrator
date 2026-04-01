@@ -19,6 +19,7 @@ import { CommunicationMode, Node, WorldObject, ModalPin, Effect } from "../types
 export const UbiquityApp = () => {
   const [bootDone, setBootDone] = useState(false);
   const [mode, setMode] = useState<CommunicationMode>("acoustic");
+  const [storyMenuOpen, setStoryMenuOpen] = useState(false);
   const [cockpitNodeId, setCockpitNodeId] = useState<string | null>(null);
   const [nodes, setNodes] = useState<Node[]>([]);
   const [objects, setObjects] = useState<WorldObject[]>([]);
