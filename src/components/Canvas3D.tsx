@@ -321,20 +321,22 @@ const Object3D = ({ obj, mode, hideLabels }: { obj: WorldObject; mode: Communica
       )}
 
       {/* Label */}
-      <Html position={[0, height3D / 2 + 0.25, 0]} center distanceFactor={10} style={{ pointerEvents: 'none' }}>
-        <div style={{
-          background: 'hsla(240,10%,4%,0.8)', border: '1px solid hsla(0,0%,50%,0.25)',
-          borderRadius: 5, padding: '2px 6px', fontSize: 9, color: '#ccc', fontFamily: 'monospace', whiteSpace: 'nowrap',
-        }}>
-          {label}
-        </div>
-      </Html>
-
-      {hovered && (
-        <Html position={[0, height3D / 2 + 0.5, 0]} center distanceFactor={6}>
+      {!hideLabels && (
+        <Html position={[0, height3D / 2 + 0.25, 0]} center distanceFactor={10} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
           <div style={{
-            background: 'hsla(240,10%,6%,0.95)', border: '1px solid hsla(0,0%,60%,0.4)',
-            borderRadius: 8, padding: '6px 10px', fontSize: 10, color: '#eee', fontFamily: 'monospace', pointerEvents: 'none',
+            background: 'hsla(240,10%,4%,0.7)', border: '1px solid hsla(0,0%,50%,0.2)',
+            borderRadius: 4, padding: '1px 5px', fontSize: 8, color: '#aaa', fontFamily: 'monospace', whiteSpace: 'nowrap',
+          }}>
+            {label}
+          </div>
+        </Html>
+      )}
+
+      {hovered && !hideLabels && (
+        <Html position={[0, height3D / 2 + 0.5, 0]} center distanceFactor={6} zIndexRange={[8, 0]}>
+          <div style={{
+            background: 'hsla(240,10%,6%,0.95)', border: '1px solid hsla(0,0%,60%,0.3)',
+            borderRadius: 6, padding: '5px 8px', fontSize: 9, color: '#ddd', fontFamily: 'monospace', pointerEvents: 'none',
           }}>
             {label} ({obj.width}×{obj.height}px)
           </div>
