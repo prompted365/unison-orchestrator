@@ -310,15 +310,25 @@ const Node3D = ({
 // ─── Gravity Well Floor Rings ────────────────────────────────────────
 const GravityWellRings = ({ size, position }: { size: number; position: [number, number, number] }) => {
   const groupRef = useRef<THREE.Group>(null);
-  const rs = size * 0.003;
-  const radii = [rs * 1.2, rs * 2.2, rs * 3.5, rs * 5];
-  useFrame((_, dt) => { if (groupRef.current) groupRef.current.rotation.y += dt * 0.08; });
+  const rs = size * 0.004;
+  const radii = [rs * 1.5, rs * 2.8, rs * 4.5, rs * 6.5, rs * 9];
+  useFrame((_, dt) => {
+    if (!groupRef.current) return;
+    groupRef.current.rotation.y += dt * 0.12;
+    // Pulse the rings
+    groupRef.current.children.forEach((child, i) => {
+      const m = child as THREE.Mesh;
+      const mat = m.material as THREE.MeshBasicMaterial;
+      const pulse = Math.sin(Date.now() * 0.002 + i * 0.8) * 0.1;
+      mat.opacity = Math.max(0.05, (0.45 - i * 0.08) + pulse);
+    });
+  });
   return (
     <group ref={groupRef} position={position} rotation={[-Math.PI / 2, 0, 0]}>
       {radii.map((r, i) => (
         <mesh key={i}>
-          <ringGeometry args={[r, r + 0.015, 64]} />
-          <meshBasicMaterial color="#9333ea" transparent opacity={0.35 - i * 0.07} side={THREE.DoubleSide} depthWrite={false} />
+          <ringGeometry args={[r, r + 0.02, 64]} />
+          <meshBasicMaterial color={i < 2 ? "#a855f7" : "#7c3aed"} transparent opacity={0.45 - i * 0.08} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
       ))}
     </group>
@@ -422,13 +432,20 @@ const Object3D = ({ obj, mode, hideLabels }: { obj: WorldObject; mode: Communica
             onPointerOut={() => setHovered(false)}
           >
             <sphereGeometry args={[Math.max(w, h) / 2, 32, 32]} />
-            <meshStandardMaterial color="#0a0020" emissive="#7c3aed" emissiveIntensity={0.6} metalness={0.8} roughness={0.2} transparent opacity={0.9} />
+            <meshStandardMaterial color="#0a0020" emissive="#7c3aed" emissiveIntensity={0.9} metalness={0.85} roughness={0.15} transparent opacity={0.92} />
           </mesh>
+          {/* Outer event horizon glow */}
           <mesh>
-            <sphereGeometry args={[Math.max(w, h) / 2 + 0.03, 24, 24]} />
-            <meshBasicMaterial color="#9333ea" transparent opacity={0.08} side={THREE.BackSide} depthWrite={false} />
+            <sphereGeometry args={[Math.max(w, h) / 2 + 0.05, 32, 32]} />
+            <meshBasicMaterial color="#a855f7" transparent opacity={0.12} side={THREE.BackSide} depthWrite={false} />
           </mesh>
-          <pointLight color="#9333ea" intensity={1.5} distance={2.5} />
+          {/* Accretion disk */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[Math.max(w, h) / 2 + 0.06, Math.max(w, h) / 2 + 0.2, 48]} />
+            <meshBasicMaterial color="#c084fc" transparent opacity={0.15} side={THREE.DoubleSide} depthWrite={false} />
+          </mesh>
+          <pointLight color="#9333ea" intensity={3} distance={4} decay={1.5} />
+          <pointLight color="#c084fc" intensity={1} distance={2} decay={2} />
           <GravityWellRings size={obj.width + obj.height} position={[0, -height3D / 2 + 0.01, 0]} />
         </>
       )}
@@ -486,37 +503,45 @@ const Wavefront3D = ({ wf, objects }: { wf: Wavefront; objects: WorldObject[] })
   }
 
   if (wf.mode === 'acoustic') {
-    const hue = 25 + (1 - wf.energy) * 15;
-    const sat = 0.8 + wf.energy * 0.2;
-    const lit = 0.35 + wf.energy * 0.25;
+    const hue = 20 + (1 - wf.energy) * 15;
+    const sat = 0.85 + wf.energy * 0.15;
+    const lit = 0.4 + wf.energy * 0.25;
     const waveColor = new THREE.Color().setHSL(hue / 360, sat, lit);
     if (wf.isEcho) {
       return (
         <mesh ref={meshRef} position={[px, emitterY, pz]}>
           <sphereGeometry args={[r, 16, 12]} />
-          <meshBasicMaterial color={new THREE.Color().setHSL(80 / 360, 0.5, 0.35)} transparent opacity={opacity * 0.4} wireframe depthWrite={false} />
+          <meshBasicMaterial color={new THREE.Color().setHSL(40 / 360, 0.6, 0.4)} transparent opacity={opacity * 0.45} wireframe depthWrite={false} />
         </mesh>
       );
     }
     return (
-      <mesh ref={meshRef} position={[px, emitterY, pz]}>
-        <sphereGeometry args={[r, 24, 16]} />
-        <meshBasicMaterial color={waveColor} transparent opacity={opacity * 0.6} wireframe depthWrite={false} />
-      </mesh>
+      <group position={[px, emitterY, pz]}>
+        <mesh ref={meshRef}>
+          <sphereGeometry args={[r, 24, 16]} />
+          <meshBasicMaterial color={waveColor} transparent opacity={opacity * 0.55} wireframe depthWrite={false} />
+        </mesh>
+        {/* Warm pressure glow at origin */}
+        {r < 0.8 && <pointLight color="#ff6633" intensity={opacity * 3} distance={2} decay={2} />}
+      </group>
     );
   }
 
   if (wf.mode === 'light') {
     return (
       <group position={[px, emitterY, pz]}>
+        {/* Bright leading edge shell */}
         <mesh ref={meshRef}>
           <sphereGeometry args={[r, 32, 24]} />
-          <meshBasicMaterial color={color} transparent opacity={opacity * 0.1} side={THREE.DoubleSide} depthWrite={false} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={opacity * 0.18} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
+        {/* Colored inner volume */}
         <mesh>
-          <sphereGeometry args={[Math.max(0, r - 0.02), 32, 24]} />
-          <meshBasicMaterial color={color} transparent opacity={opacity * 0.06} side={THREE.BackSide} depthWrite={false} />
+          <sphereGeometry args={[Math.max(0, r - 0.015), 32, 24]} />
+          <meshBasicMaterial color={color} transparent opacity={opacity * 0.08} side={THREE.BackSide} depthWrite={false} />
         </mesh>
+        {/* Flash bloom at origin when fresh */}
+        {r < 1 && <pointLight color="#4ecdc4" intensity={opacity * 8} distance={3} decay={2} />}
       </group>
     );
   }
@@ -533,26 +558,77 @@ const GravityWavefrontSphere = ({ r, position, opacity }: {
   objects: WorldObject[]; px: number; pz: number;
 }) => {
   const meshRef = useRef<THREE.Mesh>(null);
+  const innerRef = useRef<THREE.Mesh>(null);
   const geoRef = useRef<THREE.SphereGeometry>(null);
+  const innerGeoRef = useRef<THREE.SphereGeometry>(null);
+  const shockRef = useRef<THREE.Mesh>(null);
+
   useFrame(() => {
     if (!geoRef.current || !meshRef.current) return;
     const geo = geoRef.current;
     const pos = geo.attributes.position;
     const time = Date.now() * 0.001;
+
+    // Heavy, churning displacement — the 808 DROP
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
       const len = Math.sqrt(x * x + y * y + z * z) || 1;
-      const ripple = Math.sin(len * 8 - time * 2) * 0.03 * opacity;
+      // Deep sub-bass ripple + harmonic crunch
+      const subBass = Math.sin(len * 4 - time * 3) * 0.08 * opacity;
+      const crunch = Math.sin(len * 12 - time * 5) * 0.025 * opacity;
+      const wobble = Math.sin(len * 2 + time * 1.5 + y * 3) * 0.04 * opacity;
       const scale = r / len;
-      pos.setXYZ(i, x * scale + (x / len) * ripple, y * scale + (y / len) * ripple, z * scale + (z / len) * ripple);
+      const disp = subBass + crunch + wobble;
+      pos.setXYZ(i,
+        x * scale + (x / len) * disp,
+        y * scale + (y / len) * disp * 1.3,
+        z * scale + (z / len) * disp
+      );
     }
     pos.needsUpdate = true;
+
+    // Inner plasma core
+    if (innerGeoRef.current && innerRef.current) {
+      const ipos = innerGeoRef.current.attributes.position;
+      const innerR = r * 0.6;
+      for (let i = 0; i < ipos.count; i++) {
+        const x = ipos.getX(i), y = ipos.getY(i), z = ipos.getZ(i);
+        const len = Math.sqrt(x * x + y * y + z * z) || 1;
+        const pulse = Math.sin(len * 6 + time * 4) * 0.05 * opacity;
+        const sc = innerR / len;
+        ipos.setXYZ(i, x * sc + (x / len) * pulse, y * sc + (y / len) * pulse, z * sc + (z / len) * pulse);
+      }
+      ipos.needsUpdate = true;
+    }
+
+    // Shockwave ring at equator
+    if (shockRef.current) {
+      const pulse = 1 + Math.sin(time * 6) * 0.15;
+      shockRef.current.scale.set(r * pulse, r * pulse, r * pulse);
+      (shockRef.current.material as THREE.MeshBasicMaterial).opacity = opacity * 0.35 * (0.5 + Math.sin(time * 4) * 0.5);
+    }
   });
+
   return (
-    <mesh ref={meshRef} position={position}>
-      <sphereGeometry ref={geoRef} args={[r, 24, 16]} />
-      <meshBasicMaterial color="#9333ea" transparent opacity={opacity * 0.5} side={THREE.DoubleSide} depthWrite={false} wireframe />
-    </mesh>
+    <group position={position}>
+      {/* Outer distorted shell */}
+      <mesh ref={meshRef}>
+        <sphereGeometry ref={geoRef} args={[r, 32, 24]} />
+        <meshBasicMaterial color="#7c3aed" transparent opacity={opacity * 0.45} side={THREE.DoubleSide} depthWrite={false} wireframe />
+      </mesh>
+      {/* Inner plasma volume */}
+      <mesh ref={innerRef}>
+        <sphereGeometry ref={innerGeoRef} args={[r * 0.6, 24, 16]} />
+        <meshBasicMaterial color="#a855f7" transparent opacity={opacity * 0.12} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+      {/* Equatorial shockwave ring */}
+      <mesh ref={shockRef} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.9, 1.0, 48]} />
+        <meshBasicMaterial color="#c084fc" transparent opacity={opacity * 0.3} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+      {/* Gravity light — purple bloom */}
+      <pointLight color="#9333ea" intensity={opacity * 6} distance={r * 3 + 1} decay={2} />
+    </group>
   );
 };
 
@@ -832,15 +908,32 @@ const Terrain = ({ mode, objects, wavefronts }: {
         const wfz = toWorld(wf.sourceY - CENTER_Y);
         const wfr = toWorld(wf.radius);
         const dist = Math.sqrt((x - wfx) ** 2 + (z - wfz) ** 2);
-        // Ripple at the wavefront edge
         const edgeDist = Math.abs(dist - wfr);
-        if (edgeDist < 0.5) {
-          const ripple = Math.cos(edgeDist * Math.PI / 0.5) * 0.5 + 0.5;
-          signalPressure += ripple * wf.energy * 0.04;
-        }
-        // Subtle depression inside the wavefront
-        if (dist < wfr) {
-          signalPressure -= wf.energy * 0.008 * Math.exp(-dist * 0.5);
+
+        if (wf.mode === 'gravity') {
+          // GRAVITY SLAM — massive terrain deformation
+          // Leading shockwave ridge
+          if (edgeDist < 0.8) {
+            const shockwave = Math.cos(edgeDist * Math.PI / 0.8) * 0.5 + 0.5;
+            signalPressure += shockwave * wf.energy * 0.18;
+          }
+          // Deep trough behind the wavefront
+          if (dist < wfr) {
+            const depth = wf.energy * 0.06 * Math.exp(-dist * 0.3);
+            signalPressure -= depth;
+            // Sub-harmonic terrain rumble inside the wavefront
+            const rumble = Math.sin(dist * 6 - time * 3) * wf.energy * 0.02 * Math.exp(-dist * 0.2);
+            signalPressure += rumble;
+          }
+        } else {
+          // Acoustic/Light — gentler ripple
+          if (edgeDist < 0.5) {
+            const ripple = Math.cos(edgeDist * Math.PI / 0.5) * 0.5 + 0.5;
+            signalPressure += ripple * wf.energy * 0.04;
+          }
+          if (dist < wfr) {
+            signalPressure -= wf.energy * 0.008 * Math.exp(-dist * 0.5);
+          }
         }
       }
 
