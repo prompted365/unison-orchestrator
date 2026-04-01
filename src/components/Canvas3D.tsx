@@ -940,10 +940,9 @@ const Terrain = ({ mode, objects, wavefronts }: {
 
 /** Sample height from the dynamic (already-displaced) plane geometry */
 function sampleDynamicHeight(
-  pos: THREE.BufferAttribute, worldX: number, worldZ: number,
+  pos: THREE.BufferAttribute | THREE.InterleavedBufferAttribute, worldX: number, worldZ: number,
   size: number, segments: number
 ): number {
-  // Map world coords to grid indices
   const fx = (worldX / size + 0.5) * segments;
   const fz = (worldZ / size + 0.5) * segments;
   const ix = Math.min(Math.max(Math.round(fx), 0), segments);
