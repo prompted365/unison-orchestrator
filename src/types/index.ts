@@ -64,14 +64,35 @@ export interface Node {
   actorIndex?: number;
 }
 
+// ═══ [CE] CIVIL ENGINEER ═══════════════════════════════════════
+// Canonical mapping (internal → ontology/glossary term):
+//   'wall'   → Attenuation Boundary — graduated signal degradation per hop
+//   'lens'   → Observability Lens — selective signal amplification
+//   'mirror' → Specular Surface — directional signal redirection
+//   'mass'   → Invariant Field tension plate — constitutional anchor with gravity well
+// Gap D8: Internal type names diverge from canonical vocabulary.
+//   Talos should use canonical names in its entity registry.
+// Constraint: x,y,width,height in 2D pixel space. Object sits on terrain at
+//   worldPos = ((x + w/2 - 400) * 0.02, terrainHeight, (y + h/2 - 280) * 0.02)
+// Constraint: Walls MUST sit flush with terrain — no floating geometry.
+//   The platform beneath must deform to accommodate the boundary footprint.
+// ════════════════════════════════════════════════════════════════
+// ═══ [VG] VIDEOGRAPHER ═════════════════════════════════════════
+// Wall: translucent box with mode-colored wireframe overlay, 3 horizontal scan lines
+// Lens: torus ring with transparent fill, cyan emissive glow
+// Mirror: flat reflective plane with arrow indicator pointing reflection normal
+// Mass: solid sphere with outer event horizon, accretion disk rings, purple bloom
+// Legibility: Each object type has unique silhouette — identifiable without labels at 10+ units
+// Talos: Objects scale with width/height * 0.02. A 56px mass = 1.12 world units ≈ ~3.4m diameter
+// ════════════════════════════════════════════════════════════════
 export interface WorldObject {
   id: string;
-  type: 'wall' | 'lens' | 'mirror' | 'mass';
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  surfaceAngle?: number; // radians, for mirror orientation
+  type: 'wall' | 'lens' | 'mirror' | 'mass';  // [CE] see canonical mapping above
+  x: number;      // [CE] 2D pixel x — top-left corner
+  y: number;      // [CE] 2D pixel y — top-left corner
+  width: number;  // [CE] 2D pixel width
+  height: number; // [CE] 2D pixel height
+  surfaceAngle?: number; // [CE] radians, mirror reflection normal orientation
 }
 
 export interface ModalPin {
