@@ -1098,7 +1098,7 @@ const Scene = ({
           <sphereGeometry args={[7, 32, 32]} />
           <meshBasicMaterial color="#ffcc66" transparent opacity={0.05} />
         </mesh>
-        <pointLight color="#fff4d6" intensity={3} distance={200} decay={1} />
+        <pointLight color="#fff4d6" intensity={5} distance={200} decay={1} />
       </group>
 
       {/* Primary sunlight — directional from the sun's position, with shadow */}
