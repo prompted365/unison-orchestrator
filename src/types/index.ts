@@ -95,16 +95,32 @@ export interface WorldObject {
   surfaceAngle?: number; // [CE] radians, mirror reflection normal orientation
 }
 
+// ═══ [CE] CIVIL ENGINEER ═══════════════════════════════════════
+// Canonical: ModalPin — maps to Epitaph (glossary: "conformation-proximity memory
+//   artifact encoding a failure mode's shape"). Spawns from an agent node after
+//   signal lifecycle completes. Compressed into durable disposition by epitaph_extractor.
+// Gap: No link back to source signal ID or warrant that triggered the epitaph.
+// Gap: No governance tic timestamp — uses wall-clock createdAt (see D9).
+// Constraint: TTL in ms. Pin auto-removes after TTL. In Talos, TTL should be
+//   denominated in tics, not wall-clock ms.
+// ════════════════════════════════════════════════════════════════
+// ═══ [VG] VIDEOGRAPHER ═════════════════════════════════════════
+// Renders as: burn-up ember animation → rising stem → floating card
+// The burn-up originates from the source agent node — communicates "death and
+//   crystallization" without text. Card appears after 1s delay.
+// Talos: Pin stem height ~1.2 world units. Card at 1.8 units above terrain.
+//   Scale stem to building height proportions in city context.
+// ════════════════════════════════════════════════════════════════
 export interface ModalPin {
   id: string;
   mode: CommunicationMode;
-  x: number;
+  x: number;  // [CE] 2D pixel coords — spawns near source agent
   y: number;
   title: string;
   body: string;
   tags: string;
-  effect: any;
-  ttl: number;
+  effect: any;  // [CE] governance side-effect payload — type varies by mode
+  ttl: number;  // [CE] milliseconds — should be tics in Talos (see D9)
   createdAt: number;
 }
 
