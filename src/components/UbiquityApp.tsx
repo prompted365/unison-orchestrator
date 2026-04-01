@@ -13,7 +13,7 @@ import { useSimulation } from "../hooks/useSimulation";
 import { useSignalEngine } from "../hooks/useSignalEngine";
 import { useGradientConfig } from "../hooks/useGradientConfig";
 import { useTimeScale } from "../hooks/useTimeScale";
-import { useStoryMode, STORY_LAYOUT } from "../hooks/useStoryMode";
+import { useStoryMode, STORY_LAYOUT, StoryBand } from "../hooks/useStoryMode";
 import { CommunicationMode, Node, WorldObject, ModalPin, Effect } from "../types";
 
 export const UbiquityApp = () => {
