@@ -1,13 +1,48 @@
+// ═══ [CE] CIVIL ENGINEER ═══════════════════════════════════════
+// This module defines the physics model for all three CGG signal bands.
+// Canonical mapping:
+//   acoustic → PRIMITIVE band: omnidirectional, inverse-square + absorption, echoes off walls
+//   light    → COGNITIVE band: high-speed, no echoes, lensing/reflection via optics objects
+//   gravity  → PRIMITIVE (field): near-lossless, Schwarzschild-inspired time dilation near masses
+//
+// COORDINATE CONTRACT:
+//   PX_PER_METER = 60 → 1 meter = 60 pixels in 2D space
+//   SCALE = 0.02 in Canvas3D → 1 pixel = 0.02 world units → 1 meter = 1.2 world units
+//   Velocities are in px/s (scaled for visibility, NOT physical):
+//     acoustic: 200 px/s ≈ 3.3 m/s (real: 343 m/s)
+//     light:    4000 px/s ≈ 66 m/s  (real: 3×10⁸ m/s)
+//     gravity:  800 px/s ≈ 13 m/s   (real: 3×10⁸ m/s)
+//   Normalization rationale: slowed so humans can observe propagation patterns.
+//
+// ATTENUATION MODEL (acoustic):
+//   muffling_per_hop = 0.6 (canonical CGG spec)
+//   Each wall crossing multiplies signal by 0.6. NOT binary block.
+//   This is the "graduated degradation, not permission" principle.
+//
+// Gap D4: No Astragals channel — all propagation is broadcast/omni.
+//   Astragals would be point-to-point with guaranteed delivery, no attenuation.
+// Gap D1: No standing-based reception filtering — all agents hear equally
+//   if within range. Standing should gate effective_volume threshold.
+// ════════════════════════════════════════════════════════════════
 import { useMemo } from "react";
 import { CommunicationMode, Node, WorldObject } from "../types";
 
 const PX_PER_METER = 60;
 
-// Scaled velocities (px/s) so wavefronts are visible
+// ═══ [VG] VIDEOGRAPHER ═════════════════════════════════════════
+// These velocities control how fast wavefront spheres expand in the 3D scene.
+// Acoustic: ~4s to cross full scene — viewer can watch pressure fronts arrive at agents
+// Light: ~0.2s — fast flash, barely trackable, communicates "instant" reach
+// Gravity: ~1s — heavy ripple, visually distinct from both acoustic and light
+// Alpha: absorption coefficient. Higher = faster energy decay over distance.
+//   acoustic α=0.012: noticeable dimming at half-scene distance
+//   light α=0.0002: nearly lossless across the estate
+//   gravity α=0: truly lossless — the field carries the signal perfectly
+// ════════════════════════════════════════════════════════════════
 const PHYSICS_PROFILES = {
-  acoustic: { velocity: 200, alpha: 0.012, echoes: true },   // ~4s to cross 800px — watch pressure fronts arrive
-  light:    { velocity: 4000, alpha: 0.0002, echoes: false }, // ~200ms to cross — fast flash, trackable
-  gravity:  { velocity: 800, alpha: 0, echoes: false }        // ~1s to cross — heavy ripple, visually distinct
+  acoustic: { velocity: 200, alpha: 0.012, echoes: true },
+  light:    { velocity: 4000, alpha: 0.0002, echoes: false },
+  gravity:  { velocity: 800, alpha: 0, echoes: false }
 };
 
 export const usePhysics = (mode: CommunicationMode) => {
