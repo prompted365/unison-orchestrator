@@ -883,15 +883,32 @@ const Terrain = ({ mode, objects, wavefronts }: {
         const wfz = toWorld(wf.sourceY - CENTER_Y);
         const wfr = toWorld(wf.radius);
         const dist = Math.sqrt((x - wfx) ** 2 + (z - wfz) ** 2);
-        // Ripple at the wavefront edge
         const edgeDist = Math.abs(dist - wfr);
-        if (edgeDist < 0.5) {
-          const ripple = Math.cos(edgeDist * Math.PI / 0.5) * 0.5 + 0.5;
-          signalPressure += ripple * wf.energy * 0.04;
-        }
-        // Subtle depression inside the wavefront
-        if (dist < wfr) {
-          signalPressure -= wf.energy * 0.008 * Math.exp(-dist * 0.5);
+
+        if (wf.mode === 'gravity') {
+          // GRAVITY SLAM — massive terrain deformation
+          // Leading shockwave ridge
+          if (edgeDist < 0.8) {
+            const shockwave = Math.cos(edgeDist * Math.PI / 0.8) * 0.5 + 0.5;
+            signalPressure += shockwave * wf.energy * 0.18;
+          }
+          // Deep trough behind the wavefront
+          if (dist < wfr) {
+            const depth = wf.energy * 0.06 * Math.exp(-dist * 0.3);
+            signalPressure -= depth;
+            // Sub-harmonic terrain rumble inside the wavefront
+            const rumble = Math.sin(dist * 6 - time * 3) * wf.energy * 0.02 * Math.exp(-dist * 0.2);
+            signalPressure += rumble;
+          }
+        } else {
+          // Acoustic/Light — gentler ripple
+          if (edgeDist < 0.5) {
+            const ripple = Math.cos(edgeDist * Math.PI / 0.5) * 0.5 + 0.5;
+            signalPressure += ripple * wf.energy * 0.04;
+          }
+          if (dist < wfr) {
+            signalPressure -= wf.energy * 0.008 * Math.exp(-dist * 0.5);
+          }
         }
       }
 
