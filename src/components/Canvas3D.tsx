@@ -1104,7 +1104,7 @@ const Scene = ({
       {/* Primary sunlight — directional from the sun's position, with shadow */}
       <directionalLight
         position={[80, 60, -40]}
-        intensity={1.2}
+        intensity={1.8}
         color="#fff0d0"
         castShadow
         shadow-mapSize-width={1024}
