@@ -205,7 +205,16 @@ export const usePhysics = (mode: CommunicationMode) => {
         });
     },
 
-    // Schwarzschild-inspired time dilation near masses
+    // ═══ [CE] Schwarzschild-inspired time dilation near invariant masses ═══
+    // Canonical: Invariant Field tension plates create gravity wells that slow
+    //   signal propagation (time dilation) and bend wavefront paths.
+    //   rs (Schwarzschild radius) proportional to mass size — larger masses = deeper wells.
+    //   Dilation < 1 means signals slow down near masses.
+    // ═══ [VG] Time dilation manifests as visually slowed wavefront expansion ═══
+    //   near masses — viewer sees the sphere "stick" near invariant points.
+    // Talos: Mass size should correspond to the constitutional weight of the invariant.
+    //   A fundamental trust boundary should be larger than a local policy rule.
+    // ════════════════════════════════════════════════════════════════════════
     computeTimeDilation: (x: number, y: number, objects: WorldObject[]): number => {
       if (mode !== 'gravity') return 1;
       const masses = objects.filter(obj => obj.type === 'mass');
@@ -213,14 +222,17 @@ export const usePhysics = (mode: CommunicationMode) => {
       for (const mass of masses) {
         const cx = mass.x + mass.width / 2;
         const cy = mass.y + mass.height / 2;
-        const rs = (mass.width + mass.height) * 0.15; // Schwarzschild radius proportional to size
+        const rs = (mass.width + mass.height) * 0.15; // [CE] Schwarzschild radius ∝ object size
         const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
         dilation *= 1 / (1 + rs / (2 * Math.max(dist, 10)));
       }
       return dilation;
     },
 
-    // Phase skew for gravity mode agents
+    // ═══ [CE] Phase skew — gravity-mode agents experience clock drift near masses ═══
+    // This creates the "ecotone" effect: agents near different masses perceive
+    //   signals at different phases, creating dissonance in the lattice.
+    // ════════════════════════════════════════════════════════════════════════
     getPhaseSkew: (agent: { x: number; y: number }, objects: WorldObject[]) => {
       if (mode !== 'gravity') return 0;
       const masses = objects.filter(obj => obj.type === 'mass');

@@ -124,11 +124,15 @@ export interface ModalPin {
   createdAt: number;
 }
 
+// ═══ [VG] VIDEOGRAPHER ═════════════════════════════════════════
+// Effect is a transient visual overlay triggered by broadcasts, triads, warrants.
+// Not persisted. Duration in ms. Used for flash/bloom/ring effects only.
+// ════════════════════════════════════════════════════════════════
 export interface Effect {
   id: string;
   type: 'ring' | 'echo' | 'smear' | 'arc' | 'metric' | 'ray' | 'acoustic-wave' | 'gravity-wave'
     | 'reflection' | 'refraction' | 'triad-resonance' | 'warrant-pulse';
-  x: number;
+  x: number;  // [CE] 2D pixel coords
   y: number;
   size?: number;
   color?: string;
