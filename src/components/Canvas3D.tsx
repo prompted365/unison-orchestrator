@@ -598,8 +598,11 @@ const Wavefront3D = ({ wf, objects }: { wf: Wavefront; objects: WorldObject[] })
   const r = toWorld(wf.radius);
   const px = toWorld(wf.sourceX - CENTER_X);
   const pz = toWorld(wf.sourceY - CENTER_Y);
-  const color = MODE_COLORS[wf.mode];
-  const opacity = Math.min(0.6, wf.energy * 0.7);
+  const isLocal = wf.isEstateLocal;
+  const color = isLocal
+    ? new THREE.Color(MODE_COLORS[wf.mode]).offsetHSL(0.333, 0, 0.05).getStyle()
+    : MODE_COLORS[wf.mode];
+  const opacity = Math.min(0.6, wf.energy * (isLocal ? 0.85 : 0.7));
   if (opacity < 0.01 || (!wf.isBeam && r > 12)) return null;
 
   const terrainY = getTerrainHeight(px, pz);
@@ -624,9 +627,10 @@ const Wavefront3D = ({ wf, objects }: { wf: Wavefront; objects: WorldObject[] })
   }
 
   if (wf.mode === 'acoustic') {
-    const hue = 20 + (1 - wf.energy) * 15;
+    const baseHue = 20 + (1 - wf.energy) * 15;
+    const hue = isLocal ? baseHue + 120 : baseHue; // estate-local: green-shifted
     const sat = 0.85 + wf.energy * 0.15;
-    const lit = 0.4 + wf.energy * 0.25;
+    const lit = 0.4 + wf.energy * (isLocal ? 0.3 : 0.25);
     const waveColor = new THREE.Color().setHSL(hue / 360, sat, lit);
     if (wf.isEcho) {
       return (
