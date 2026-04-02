@@ -318,6 +318,48 @@ const Node3D = ({
         </mesh>
       )}
 
+      {/* Estate Primary: second octahedron rotated 45° for double-diamond look */}
+      {isEstatePrimary && (
+        <mesh rotation={[0, Math.PI / 4, 0]}>
+          <octahedronGeometry args={[radius * 0.75, 0]} />
+          <meshStandardMaterial
+            color={color}
+            emissive={color}
+            emissiveIntensity={1.5}
+            transparent
+            opacity={0.4}
+            wireframe
+          />
+        </mesh>
+      )}
+
+      {/* Estate Primary: scope radius ring on terrain */}
+      {isEstatePrimary && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]}>
+          <ringGeometry args={[1.9, 2.0, 64]} />
+          <meshBasicMaterial color={color} transparent opacity={0.15} depthWrite={false} side={THREE.DoubleSide} />
+        </mesh>
+      )}
+
+      {/* Estate Primary: glow light */}
+      {isEstatePrimary && (
+        <pointLight color={color} intensity={1.5} distance={4} />
+      )}
+
+      {/* Estate Sub-node: Saturn-like rings */}
+      {isEstateSub && (
+        <>
+          <mesh rotation={[-Math.PI / 2.5, 0, 0]}>
+            <ringGeometry args={[radius + 0.03, radius + 0.09, 32]} />
+            <meshBasicMaterial color={color} transparent opacity={0.4} depthWrite={false} side={THREE.DoubleSide} />
+          </mesh>
+          <mesh rotation={[-Math.PI / 2.5, Math.PI / 6, 0]}>
+            <ringGeometry args={[radius + 0.11, radius + 0.14, 32]} />
+            <meshBasicMaterial color={color} transparent opacity={0.2} depthWrite={false} side={THREE.DoubleSide} />
+          </mesh>
+        </>
+      )}
+
       {snr > 0.05 && !isCockpitTarget && !isGhostChorus && (
         <mesh>
           <ringGeometry args={[radius + 0.05, radius + 0.05 + snr * 0.3, 32]} />
