@@ -627,9 +627,10 @@ const Wavefront3D = ({ wf, objects }: { wf: Wavefront; objects: WorldObject[] })
   }
 
   if (wf.mode === 'acoustic') {
-    const hue = 20 + (1 - wf.energy) * 15;
+    const baseHue = 20 + (1 - wf.energy) * 15;
+    const hue = isLocal ? baseHue + 120 : baseHue; // estate-local: green-shifted
     const sat = 0.85 + wf.energy * 0.15;
-    const lit = 0.4 + wf.energy * 0.25;
+    const lit = 0.4 + wf.energy * (isLocal ? 0.3 : 0.25);
     const waveColor = new THREE.Color().setHSL(hue / 360, sat, lit);
     if (wf.isEcho) {
       return (
