@@ -172,9 +172,16 @@ const Node3D = ({
   const isOrch = node.type === 'orchestrator';
   const isGhostChorus = node.actorGroup === 'ghost_chorus';
   const isEpitaphExtractor = node.actorGroup === 'epitaph_extractor';
+  const isEstatePrimary = !!node.isEstatePrimary;
+  const isEstateSub = !!node.estateId && !node.isEstatePrimary;
   const snr = signal?.snr ?? (isOrch ? 1 : 0);
 
+  // Estate nodes get a +120° hue shift for local distinction
+  const estateHueShift = (node.estateId ? 120 / 360 : 0);
+
   const color = isOrch ? MODE_COLORS[mode]
+    : isEstatePrimary ? new THREE.Color().setHSL((50 / 360 + estateHueShift) % 1, 0.85, 0.55 + snr * 0.15)
+    : isEstateSub ? new THREE.Color().setHSL((180 / 360 + estateHueShift) % 1, 0.7, 0.45 + snr * 0.15)
     : isGhostChorus ? new THREE.Color().setHSL(200 / 360, 0.15, 0.5 + snr * 0.15)
     : isEpitaphExtractor ? new THREE.Color().setHSL(30 / 360, 0.7, 0.45 + snr * 0.2)
     : new THREE.Color().setHSL(
@@ -183,7 +190,11 @@ const Node3D = ({
         snr > 0.05 ? 0.6 : 0.35
       );
 
-  const radius = isOrch ? 0.25 : isGhostChorus ? 0.1 + snr * 0.06 : 0.12 + snr * 0.08;
+  const radius = isOrch ? 0.25
+    : isEstatePrimary ? 0.22
+    : isEstateSub ? 0.13
+    : isGhostChorus ? 0.1 + snr * 0.06
+    : 0.12 + snr * 0.08;
 
   useFrame((_, dt) => {
     if (!meshRef.current) return;
