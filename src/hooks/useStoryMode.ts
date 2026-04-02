@@ -207,7 +207,7 @@ const ACOUSTIC_ACTS: ActDef[] = [
     duration: 16,
     narration: {
       title: "Act 6 · The Epitaph",
-      body: "When a signal completes its lifecycle — acknowledged, acted upon, resolved — the Epitaph Extractor compresses the outcome into a durable disposition. The system doesn't store everything. It remembers what mattered. This is institutional memory without institutional bloat.",
+      body: "When a signal completes its lifecycle, the Epitaph Extractor compresses the outcome into a durable disposition — a ghost of what happened, pinned to the terrain where it occurred. When agents later traverse familiar ground, these ambient epitaphs inject themselves into the runtime context window, whispering: this topology has killed before. The terrain remembers so the living don't have to.",
     },
     cameraStart: { pos: [-0.5, 1.5, 0.8], target: [-0.4, 0.15, 0.6] },
     cameraEnd: { pos: [-0.5, 1, 0.3], target: [-0.4, 0.15, 0.6] },
