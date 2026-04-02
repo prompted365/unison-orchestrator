@@ -176,6 +176,8 @@ export interface Wavefront {
   mode: CommunicationMode;
   isEcho: boolean;   // [CE] spawned by wall reflection (acoustic only)
   isBeam?: boolean;  // [CE] directional beam from mirror reflection — translates, doesn't expand
+  isEstateLocal?: boolean; // [CE] estate-scoped relay — hue-shifted, only heard by estate sub-nodes
+  estateId?: string;       // [CE] which estate cluster this relay belongs to
   parentId?: string; // [CE] lineage — which wavefront spawned this echo/reflection
   angle?: number;    // [CE] radians, beam travel direction
   createdAt: number; // [CE] wall-clock ms — not governance tic (see D9)
