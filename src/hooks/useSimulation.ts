@@ -261,6 +261,11 @@ export const useSimulation = (
       let hitCount = 0;
 
       wfs.forEach(wf => {
+        // Estate sub-nodes can't hear global wavefronts — only estate-local relays
+        const isSubNode = agent.estateId && !agent.isEstatePrimary;
+        if (isSubNode && !wf.isEstateLocal) return;
+        // Estate-local wavefronts only reach nodes in the same estate
+        if (wf.isEstateLocal && wf.estateId && agent.estateId !== wf.estateId) return;
         const distPx = phys.getPixelDistance(
           { x: agent.x, y: agent.y },
           { x: wf.sourceX, y: wf.sourceY }
