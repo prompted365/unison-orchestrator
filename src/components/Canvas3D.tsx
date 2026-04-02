@@ -266,6 +266,10 @@ const Node3D = ({
       >
         {isOrch ? (
           <octahedronGeometry args={[radius, 1]} />
+        ) : isEstatePrimary ? (
+          <octahedronGeometry args={[radius, 1]} />
+        ) : isEstateSub ? (
+          <dodecahedronGeometry args={[radius, 0]} />
         ) : isGhostChorus ? (
           <icosahedronGeometry args={[radius, 0]} />
         ) : isEpitaphExtractor ? (
@@ -275,10 +279,10 @@ const Node3D = ({
         )}
         <meshStandardMaterial
           color={isGhostChorus ? '#556677' : color}
-          emissive={isGhostChorus ? '#7799aa' : isEpitaphExtractor ? '#cc6622' : color}
-          emissiveIntensity={isGhostChorus ? 0.8 : 0.5}
-          metalness={isGhostChorus ? 0.05 : 0.4}
-          roughness={isGhostChorus ? 0.9 : 0.3}
+          emissive={isGhostChorus ? '#7799aa' : isEpitaphExtractor ? '#cc6622' : isEstatePrimary ? color : isEstateSub ? color : color}
+          emissiveIntensity={isGhostChorus ? 0.8 : isEstatePrimary ? 1.2 : isEstateSub ? 0.6 : 0.5}
+          metalness={isGhostChorus ? 0.05 : isEstatePrimary ? 0.6 : 0.4}
+          roughness={isGhostChorus ? 0.9 : isEstatePrimary ? 0.15 : 0.3}
           transparent
           opacity={isGhostChorus ? 0.35 : isCockpitTarget ? 0.3 : 1}
           side={isGhostChorus ? THREE.DoubleSide : THREE.FrontSide}
