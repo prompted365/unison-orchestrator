@@ -68,7 +68,7 @@ export const StoryOverlay = ({
             animation: 'subtitleFadeIn 0.4s ease-out',
           }}
         >
-          <div className="max-w-4xl mx-auto px-5 pt-6 pb-4 sm:px-8 sm:pb-5">
+          <div className="max-w-4xl mx-auto px-5 pt-6 pb-6 sm:px-8 sm:pb-8">
             {/* Title line with controls */}
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-3">

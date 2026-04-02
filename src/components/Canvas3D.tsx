@@ -1221,19 +1221,19 @@ const StoryHighlight = ({ obj }: { obj: WorldObject }) => {
 const StoryCallout3D = ({ callout }: { callout: StoryCallout }) => {
   return (
     <group position={callout.worldPos}>
-      <Html center distanceFactor={6} zIndexRange={[100, 50]}
+      <Html center distanceFactor={12} zIndexRange={[100, 50]}
         style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}>
         <div style={{
-          background: 'hsla(240,10%,4%,0.85)',
-          border: `1px solid ${callout.color || '#00ffcc'}55`,
-          borderRadius: 6,
-          padding: '3px 10px',
-          fontSize: 11,
+          background: 'hsla(240,10%,4%,0.75)',
+          border: `1px solid ${callout.color || '#00ffcc'}44`,
+          borderRadius: 4,
+          padding: '2px 8px',
+          fontSize: 10,
           fontWeight: 600,
           color: callout.color || '#00ffcc',
           fontFamily: 'monospace',
-          letterSpacing: '0.04em',
-          boxShadow: `0 0 12px ${callout.color || '#00ffcc'}22`,
+          letterSpacing: '0.05em',
+          boxShadow: `0 0 8px ${callout.color || '#00ffcc'}18`,
           animation: 'fadeInUp 0.6s ease-out',
         }}>
           {callout.label}
