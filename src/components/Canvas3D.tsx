@@ -211,6 +211,12 @@ const Node3D = ({
       meshRef.current.rotation.y += dt * 0.15;
     } else if (isEpitaphExtractor) {
       mat.emissiveIntensity = 0.5 + Math.sin(Date.now() * 0.002) * 0.3;
+    } else if (isEstatePrimary) {
+      meshRef.current.rotation.y += dt * 0.35;
+      mat.emissiveIntensity = 1.0 + Math.sin(Date.now() * 0.003) * 0.5;
+    } else if (isEstateSub) {
+      meshRef.current.rotation.y += dt * 0.2;
+      mat.emissiveIntensity = 0.4 + Math.sin(Date.now() * 0.004 + node.x * 0.05) * 0.3;
     } else {
       mat.emissiveIntensity = 0.3 + snr * 1.5;
     }
