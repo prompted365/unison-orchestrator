@@ -211,7 +211,44 @@ export const UbiquityApp = () => {
       }
     });
 
-    setNodes([orchestratorNode, ...agents]);
+    // ─── Estate cluster: Primary + 3 sub-nodes ─────────────────
+    const estateId = 'estate-alpha';
+    const estateCx = 550;
+    const estateCy = 140;
+    const estatePrimary: Node = {
+      id: 'estate-primary',
+      type: 'agent',
+      x: estateCx,
+      y: estateCy,
+      capabilities: ['ghost_chorus', 'ecotone_gate', 'economy_whisper'],
+      load: 0.5,
+      lastSNR: 0,
+      actorGroup: 'ecotone_gate',
+      actorIndex: 0,
+      estateId,
+      isEstatePrimary: true,
+      estateRadius: 2.0
+    };
+
+    const estateSubNodes: Node[] = [0, 1, 2].map(i => {
+      const angle = (i / 3) * Math.PI * 2 + Math.PI / 6;
+      const dist = 35 + i * 8;
+      return {
+        id: `estate-sub-${i}`,
+        type: 'agent' as const,
+        x: Math.max(16, Math.min(784, estateCx + Math.cos(angle) * dist)),
+        y: Math.max(16, Math.min(544, estateCy + Math.sin(angle) * dist)),
+        capabilities: ['ecotone_gate', 'drift_tracker'],
+        load: 0.3 + Math.random() * 0.3,
+        lastSNR: 0,
+        actorGroup: 'drift_tracker',
+        actorIndex: i,
+        estateId,
+        isEstatePrimary: false
+      };
+    });
+
+    setNodes([orchestratorNode, ...agents, estatePrimary, ...estateSubNodes]);
     
     if (forStory) {
       setObjects(STORY_LAYOUT.objects[forStory] as WorldObject[]);

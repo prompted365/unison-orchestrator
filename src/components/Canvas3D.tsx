@@ -172,9 +172,16 @@ const Node3D = ({
   const isOrch = node.type === 'orchestrator';
   const isGhostChorus = node.actorGroup === 'ghost_chorus';
   const isEpitaphExtractor = node.actorGroup === 'epitaph_extractor';
+  const isEstatePrimary = !!node.isEstatePrimary;
+  const isEstateSub = !!node.estateId && !node.isEstatePrimary;
   const snr = signal?.snr ?? (isOrch ? 1 : 0);
 
+  // Estate nodes get a +120° hue shift for local distinction
+  const estateHueShift = (node.estateId ? 120 / 360 : 0);
+
   const color = isOrch ? MODE_COLORS[mode]
+    : isEstatePrimary ? new THREE.Color().setHSL((50 / 360 + estateHueShift) % 1, 0.85, 0.55 + snr * 0.15)
+    : isEstateSub ? new THREE.Color().setHSL((180 / 360 + estateHueShift) % 1, 0.7, 0.45 + snr * 0.15)
     : isGhostChorus ? new THREE.Color().setHSL(200 / 360, 0.15, 0.5 + snr * 0.15)
     : isEpitaphExtractor ? new THREE.Color().setHSL(30 / 360, 0.7, 0.45 + snr * 0.2)
     : new THREE.Color().setHSL(
@@ -183,7 +190,11 @@ const Node3D = ({
         snr > 0.05 ? 0.6 : 0.35
       );
 
-  const radius = isOrch ? 0.25 : isGhostChorus ? 0.1 + snr * 0.06 : 0.12 + snr * 0.08;
+  const radius = isOrch ? 0.25
+    : isEstatePrimary ? 0.22
+    : isEstateSub ? 0.13
+    : isGhostChorus ? 0.1 + snr * 0.06
+    : 0.12 + snr * 0.08;
 
   useFrame((_, dt) => {
     if (!meshRef.current) return;
@@ -200,6 +211,12 @@ const Node3D = ({
       meshRef.current.rotation.y += dt * 0.15;
     } else if (isEpitaphExtractor) {
       mat.emissiveIntensity = 0.5 + Math.sin(Date.now() * 0.002) * 0.3;
+    } else if (isEstatePrimary) {
+      meshRef.current.rotation.y += dt * 0.35;
+      mat.emissiveIntensity = 1.0 + Math.sin(Date.now() * 0.003) * 0.5;
+    } else if (isEstateSub) {
+      meshRef.current.rotation.y += dt * 0.2;
+      mat.emissiveIntensity = 0.4 + Math.sin(Date.now() * 0.004 + node.x * 0.05) * 0.3;
     } else {
       mat.emissiveIntensity = 0.3 + snr * 1.5;
     }
@@ -255,6 +272,10 @@ const Node3D = ({
       >
         {isOrch ? (
           <octahedronGeometry args={[radius, 1]} />
+        ) : isEstatePrimary ? (
+          <octahedronGeometry args={[radius, 1]} />
+        ) : isEstateSub ? (
+          <dodecahedronGeometry args={[radius, 0]} />
         ) : isGhostChorus ? (
           <icosahedronGeometry args={[radius, 0]} />
         ) : isEpitaphExtractor ? (
@@ -264,10 +285,10 @@ const Node3D = ({
         )}
         <meshStandardMaterial
           color={isGhostChorus ? '#556677' : color}
-          emissive={isGhostChorus ? '#7799aa' : isEpitaphExtractor ? '#cc6622' : color}
-          emissiveIntensity={isGhostChorus ? 0.8 : 0.5}
-          metalness={isGhostChorus ? 0.05 : 0.4}
-          roughness={isGhostChorus ? 0.9 : 0.3}
+          emissive={isGhostChorus ? '#7799aa' : isEpitaphExtractor ? '#cc6622' : isEstatePrimary ? color : isEstateSub ? color : color}
+          emissiveIntensity={isGhostChorus ? 0.8 : isEstatePrimary ? 1.2 : isEstateSub ? 0.6 : 0.5}
+          metalness={isGhostChorus ? 0.05 : isEstatePrimary ? 0.6 : 0.4}
+          roughness={isGhostChorus ? 0.9 : isEstatePrimary ? 0.15 : 0.3}
           transparent
           opacity={isGhostChorus ? 0.35 : isCockpitTarget ? 0.3 : 1}
           side={isGhostChorus ? THREE.DoubleSide : THREE.FrontSide}
@@ -303,6 +324,48 @@ const Node3D = ({
         </mesh>
       )}
 
+      {/* Estate Primary: second octahedron rotated 45° for double-diamond look */}
+      {isEstatePrimary && (
+        <mesh rotation={[0, Math.PI / 4, 0]}>
+          <octahedronGeometry args={[radius * 0.75, 0]} />
+          <meshStandardMaterial
+            color={color}
+            emissive={color}
+            emissiveIntensity={1.5}
+            transparent
+            opacity={0.4}
+            wireframe
+          />
+        </mesh>
+      )}
+
+      {/* Estate Primary: scope radius ring on terrain */}
+      {isEstatePrimary && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]}>
+          <ringGeometry args={[1.9, 2.0, 64]} />
+          <meshBasicMaterial color={color} transparent opacity={0.15} depthWrite={false} side={THREE.DoubleSide} />
+        </mesh>
+      )}
+
+      {/* Estate Primary: glow light */}
+      {isEstatePrimary && (
+        <pointLight color={color} intensity={1.5} distance={4} />
+      )}
+
+      {/* Estate Sub-node: Saturn-like rings */}
+      {isEstateSub && (
+        <>
+          <mesh rotation={[-Math.PI / 2.5, 0, 0]}>
+            <ringGeometry args={[radius + 0.03, radius + 0.09, 32]} />
+            <meshBasicMaterial color={color} transparent opacity={0.4} depthWrite={false} side={THREE.DoubleSide} />
+          </mesh>
+          <mesh rotation={[-Math.PI / 2.5, Math.PI / 6, 0]}>
+            <ringGeometry args={[radius + 0.11, radius + 0.14, 32]} />
+            <meshBasicMaterial color={color} transparent opacity={0.2} depthWrite={false} side={THREE.DoubleSide} />
+          </mesh>
+        </>
+      )}
+
       {snr > 0.05 && !isCockpitTarget && !isGhostChorus && (
         <mesh>
           <ringGeometry args={[radius + 0.05, radius + 0.05 + snr * 0.3, 32]} />
@@ -321,7 +384,7 @@ const Node3D = ({
             fontFamily: 'monospace', letterSpacing: '0.03em',
             fontStyle: isGhostChorus ? 'italic' : 'normal',
           }}>
-            {isOrch ? 'Conductor' : (node.actorGroup ? ACTOR_GROUP_LABELS[node.actorGroup] || node.actorGroup : node.id)}
+            {isOrch ? 'Conductor' : isEstatePrimary ? '◆ Estate Primary' : isEstateSub ? '⊙ Estate Sub' : (node.actorGroup ? ACTOR_GROUP_LABELS[node.actorGroup] || node.actorGroup : node.id)}
           </div>
         </Html>
       )}

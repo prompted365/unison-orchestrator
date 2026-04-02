@@ -62,6 +62,13 @@ export interface Node {
   strength?: 'weak' | 'medium' | 'strong';  // [VG] drives color encoding
   actorGroup?: string;   // [CE] canonical: ghost_chorus | economy_whisper | ecotone_gate | drift_tracker | epitaph_extractor
   actorIndex?: number;
+  // ═══ Estate Scope ═══
+  // Estate Primary: can hear both global + local signals. Double-octahedron geometry.
+  // Estate Sub-node: only responds to local estate frequencies. Saturn-ring geometry.
+  // Local signals use +120° hue shift from global. Sub-nodes echo back to Primary after 0.8s.
+  estateId?: string;          // which estate cluster this node belongs to
+  isEstatePrimary?: boolean;  // true = Primary (double-octahedron), false = sub-node (Saturn rings)
+  estateRadius?: number;      // world-unit radius for scope assignment (default 2.0)
 }
 
 // ═══ [CE] CIVIL ENGINEER ═══════════════════════════════════════
