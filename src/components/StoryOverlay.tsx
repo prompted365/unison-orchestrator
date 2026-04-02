@@ -30,9 +30,8 @@ export const StoryOverlay = ({
 
   return (
     <div className="absolute inset-0 pointer-events-none z-[2147483000] flex flex-col justify-between">
-      {/* Top bar */}
+      {/* Top bar — progress */}
       <div className="flex items-center gap-2 px-4 pt-3 sm:px-5 sm:pt-4">
-        {/* Band badge */}
         <div
           className="px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold tracking-wider uppercase pointer-events-none shrink-0"
           style={{ background: color, color: '#000', opacity: 0.9 }}
@@ -40,7 +39,6 @@ export const StoryOverlay = ({
           {bandLabel[activeBand]}
         </div>
 
-        {/* Progress segments */}
         <div className="flex items-center gap-1 flex-1">
           {Array.from({ length: totalActs }).map((_, i) => (
             <div key={i} className="flex-1 h-1.5 rounded-full overflow-hidden bg-muted/20">
@@ -61,65 +59,70 @@ export const StoryOverlay = ({
         </span>
       </div>
 
-      {/* Bottom: narration card with integrated controls */}
+      {/* Bottom — cinematic subtitle bar */}
       {narration && (
-        <div className="flex justify-center pb-6 sm:pb-8 px-4 sm:px-6">
-          <div
-            className="pointer-events-auto max-w-3xl w-full rounded-2xl border bg-background/95 px-5 py-4 sm:px-7 sm:py-5 shadow-2xl backdrop-blur-xl"
-            style={{
-              animation: 'fadeInUp 0.5s ease-out',
-              borderColor: color + '40',
-              boxShadow: `0 20px 60px hsl(var(--background) / 0.65), 0 0 0 1px ${color}20`,
-            }}
-          >
-            {/* Arc title + band */}
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-[10px] sm:text-xs font-mono text-muted-foreground/70 tracking-wider uppercase">
-                {arcTitle}
+        <div
+          className="w-full pointer-events-auto"
+          style={{
+            background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.45) 60%, transparent 100%)',
+            animation: 'subtitleFadeIn 0.4s ease-out',
+          }}
+        >
+          <div className="max-w-4xl mx-auto px-5 pt-6 pb-4 sm:px-8 sm:pb-5">
+            {/* Title line with controls */}
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-3">
+                <span
+                  className="text-[10px] font-mono uppercase tracking-widest"
+                  style={{ color: 'rgba(255,255,255,0.45)' }}
+                >
+                  {arcTitle}
+                </span>
+                <span
+                  className="text-sm sm:text-base font-bold tracking-wide"
+                  style={{ color, textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}
+                >
+                  {narration.title}
+                </span>
               </div>
-            </div>
-
-            {/* Act title */}
-            <div
-              className="text-sm sm:text-base font-bold mb-1.5 tracking-wide"
-              style={{ color }}
-            >
-              {narration.title}
-            </div>
-
-            {/* Body */}
-            <div className="text-sm sm:text-[15px] leading-6 sm:leading-7 text-foreground/90 font-medium text-balance mb-4">
-              {narration.body}
-            </div>
-
-            {/* Controls row */}
-            <div className="flex items-center justify-between pt-2 border-t border-muted/15">
-              <div className="text-[10px] text-muted-foreground/50 font-mono">
-                ESC to exit · → to skip
-              </div>
-              <div className="flex gap-2">
+              <div className="flex gap-1.5">
                 <button
                   onClick={onSkip}
-                  className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-muted/20 text-foreground/80 hover:bg-muted/40 border border-muted/20 transition-colors"
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold hover:bg-white/15 transition-colors"
+                  style={{ color: 'rgba(255,255,255,0.7)' }}
+                  title="Skip"
                 >
-                  Skip →
+                  →
                 </button>
                 <button
                   onClick={onExit}
-                  className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-muted/20 text-foreground/80 hover:bg-muted/40 border border-muted/20 transition-colors"
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold hover:bg-white/15 transition-colors"
+                  style={{ color: 'rgba(255,255,255,0.7)' }}
+                  title="Exit Story"
                 >
-                  Exit Story
+                  ✕
                 </button>
               </div>
+            </div>
+
+            {/* Body text — subtitle style */}
+            <div
+              className="text-sm sm:text-[15px] leading-6 sm:leading-7 font-medium line-clamp-3"
+              style={{
+                color: 'rgba(255,255,255,0.88)',
+                textShadow: '0 1px 6px rgba(0,0,0,0.7), 0 0 20px rgba(0,0,0,0.4)',
+              }}
+            >
+              {narration.body}
             </div>
           </div>
         </div>
       )}
 
       <style>{`
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(12px); }
-          to { opacity: 1; transform: translateY(0); }
+        @keyframes subtitleFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
       `}</style>
     </div>
