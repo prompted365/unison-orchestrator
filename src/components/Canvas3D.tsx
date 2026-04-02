@@ -378,7 +378,7 @@ const Node3D = ({
             fontFamily: 'monospace', letterSpacing: '0.03em',
             fontStyle: isGhostChorus ? 'italic' : 'normal',
           }}>
-            {isOrch ? 'Conductor' : (node.actorGroup ? ACTOR_GROUP_LABELS[node.actorGroup] || node.actorGroup : node.id)}
+            {isOrch ? 'Conductor' : isEstatePrimary ? '◆ Estate Primary' : isEstateSub ? '⊙ Estate Sub' : (node.actorGroup ? ACTOR_GROUP_LABELS[node.actorGroup] || node.actorGroup : node.id)}
           </div>
         </Html>
       )}
