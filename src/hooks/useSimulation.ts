@@ -203,6 +203,46 @@ export const useSimulation = (
         }
       });
 
+      // ═══ Estate relay: global wavefront reaches Estate Primary → spawn local re-emission ═══
+      // The Primary "translates" the global signal into estate-local context.
+      // Sub-nodes can't hear global wavefronts — they only respond to these relays.
+      const estatePrimaries = currentNodes.filter(n => n.isEstatePrimary && n.estateId);
+      updated.forEach(wf => {
+        if (wf.isEstateLocal) return; // don't relay already-local signals
+        if (!wf.hasSpawnedEchoes) wf.hasSpawnedEchoes = new Set();
+
+        estatePrimaries.forEach(primary => {
+          const relayKey = `estate-relay-${primary.id}`;
+          if (wf.hasSpawnedEchoes!.has(relayKey)) return;
+
+          const distPx = phys.getPixelDistance(
+            { x: primary.x, y: primary.y },
+            { x: wf.sourceX, y: wf.sourceY }
+          );
+
+          // Wavefront has reached the estate primary
+          if (wf.radius >= distPx - 8) {
+            wf.hasSpawnedEchoes!.add(relayKey);
+            // Spawn estate-local relay from the Primary's position
+            newWavefronts.push({
+              id: `wf-estate-${wfCounter++}`,
+              sourceX: primary.x,
+              sourceY: primary.y,
+              radius: 5,
+              energy: wf.energy * 0.9, // slight loss in translation
+              velocity: wf.velocity * 0.7, // local signals propagate slower (deliberation)
+              mode: currentMode,
+              isEcho: false,
+              isEstateLocal: true,
+              estateId: primary.estateId,
+              parentId: wf.id,
+              createdAt: time,
+              hasSpawnedEchoes: new Set()
+            });
+          }
+        });
+      });
+
       // Prune dead wavefronts
       updated = updated.filter(wf => wf.energy > MIN_ENERGY && wf.radius < MAX_RADIUS);
 
