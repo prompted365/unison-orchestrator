@@ -1,42 +1,19 @@
 
 
-# Story Overlay → Cinematic Subtitle Bar
+# Estate System — Completed
 
-## Problem
-The current narration card is a large rounded box (`max-w-3xl`, padded, with title + body + controls) that covers ~30-40% of the viewport, blocking the 3D scene it's narrating.
+## Delivered
+1. **Estate connection lines**: Dashed hue-shifted lines between Primary and sub-nodes, pulsing during active relay wavefronts.
+2. **Sub-node echo-back**: Sub-nodes emit a 0.6× energy echo wavefront back toward the Primary upon receiving a local relay.
+3. **Story Act 6 — "The Estate Relay"**: New acoustic arc act narrating how the Primary translates global signals for deaf sub-nodes. Camera frames the estate cluster in the upper-right quadrant. Epitaph and Refusal renumbered to Acts 7–8.
+4. **Connection line filtering**: Global orchestrator→agent lines now skip estate sub-nodes (they connect only to the Primary), reinforcing the scoped hierarchy visually.
 
-## Solution
-Replace the bottom card with a **thin cinematic subtitle bar** pinned to the bottom of the screen — like movie subtitles with a dark gradient scrim.
-
-### Layout
-
-```text
-┌─────────────────────────────────────────────────┐
-│ [🔊 Acoustic] ▓▓▓▓▓▓░░░░░░░░░░░░░░  2/6       │  ← top progress (keep as-is)
-│                                                 │
-│              3D SCENE FULLY VISIBLE             │
-│                                                 │
-│                                                 │
-│                                                 │
-├─────────────────────────────────────────────────┤
-│░░░░░░░░░░░░░░░ gradient scrim ░░░░░░░░░░░░░░░░░│
-│ The Conductor's Voice                    [→][✕] │  ← title + icon buttons
-│ Watch how acoustic wavefronts propagate from    │  ← body text, 2 lines max
-│ the conductor node outward through the lattice. │
-└─────────────────────────────────────────────────┘
-```
-
-### Design Details
-
-- **Scrim**: Bottom gradient from `transparent` → `black/70`, ~120px tall. No solid card, no border, no box shadow.
-- **Text**: White with text-shadow for legibility over any terrain. Title in bold (band color), body in white/90. Max 2-3 lines.
-- **Controls**: Small icon-only buttons (→ skip, ✕ exit) floated to the right of the title line. No "ESC to exit" text — keep it minimal.
-- **Animation**: Text fades in with a subtle `fadeIn` (no translateY bounce).
-- **Arc label**: Tiny mono text above the title, same line as band badge context.
-
-### File Changes
-
-| File | Change |
-|------|--------|
-| `src/components/StoryOverlay.tsx` | Replace the bottom card with a full-width subtitle bar using a gradient scrim background. Collapse title/body/controls into 2-3 tight lines. Icon-only skip/exit buttons. |
-
+## Open Gaps (D-series)
+| Gap | Description | Status |
+|-----|-------------|--------|
+| D3 | Agent inbox / lateral work-item routing | Not started |
+| D4 | Astragals point-to-point transport | Not started |
+| D5 | Edge-type visualization (SPAWNED, DELEGATED_BY) | Partial — estate lines differentiated |
+| D6 | Governance lattice / scope rings | Not started |
+| D9 | Governance tic model (vs wall-clock) | Not started |
+| D10 | CogPR / artifact subgraph entities | Not started |
