@@ -203,10 +203,29 @@ const ACOUSTIC_ACTS: ActDef[] = [
     ],
   },
   {
+    title: "The Estate Relay",
+    duration: 18,
+    narration: {
+      title: "Act 6 · The Estate Relay",
+      body: "Not every node can hear the global broadcast. Estate sub-nodes operate on local frequencies only — they're deaf to the Conductor. The Estate Primary intercepts the global signal, translates it into local context, and re-emits at estate-local velocity. Watch the hue-shifted wavefront propagate inward — and the sub-nodes echo back. This is how hierarchy translates without distorting.",
+    },
+    cameraStart: { pos: [3.5, 3, -2.5], target: [3, 0.2, -2.8] },
+    cameraEnd: { pos: [2.5, 2, -2], target: [3, 0.2, -2.8] },
+    fov: 48,
+    actions: [
+      { progress: 0.2, fn: "broadcast" },
+      { progress: 0.55, fn: "broadcast" },
+    ],
+    callouts: [
+      { label: "◆ Estate Primary — translates global → local", worldPos: [3, 0.5, -2.8], color: "#44ff88" },
+      { label: "⊙ Sub-nodes echo back", worldPos: [3.5, 0.3, -2.2], color: "#22cc66" },
+    ],
+  },
+  {
     title: "The Epitaph",
     duration: 16,
     narration: {
-      title: "Act 6 · The Epitaph",
+      title: "Act 7 · The Epitaph",
       body: "When a signal completes its lifecycle, the Epitaph Extractor compresses the outcome into a durable disposition — a ghost of what happened, pinned to the terrain where it occurred. When agents later traverse familiar ground, these ambient epitaphs inject themselves into the runtime context window, whispering: this topology has killed before. The terrain remembers so the living don't have to.",
     },
     cameraStart: { pos: [-0.5, 1.5, 0.8], target: [-0.4, 0.15, 0.6] },
@@ -219,7 +238,7 @@ const ACOUSTIC_ACTS: ActDef[] = [
     title: "The Refusal",
     duration: 16,
     narration: {
-      title: "Act 7 · The Refusal",
+      title: "Act 8 · The Refusal",
       body: "On 2026-02-18, this system refused to promote a valid insight to global scope — because blast radius exceeded evidence. Accuracy alone doesn't earn global law. Time, repetition, and institutional review do. This is the Constitution of Attention.",
     },
     cameraStart: { pos: [0, 8, 10], target: [0, 0, 0] },

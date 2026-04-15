@@ -243,6 +243,47 @@ export const useSimulation = (
         });
       });
 
+      // ═══ Sub-node echo-back: estate sub-nodes echo 0.8s after receiving local relay ═══
+      const estateSubNodes = currentNodes.filter(n => n.estateId && !n.isEstatePrimary);
+      updated.forEach(wf => {
+        if (!wf.isEstateLocal || !wf.estateId) return;
+        if (!wf.hasSpawnedEchoes) wf.hasSpawnedEchoes = new Set();
+
+        estateSubNodes.forEach(sub => {
+          if (sub.estateId !== wf.estateId) return;
+          const echoKey = `sub-echo-${sub.id}`;
+          if (wf.hasSpawnedEchoes!.has(echoKey)) return;
+
+          const distPx = phys.getPixelDistance(
+            { x: sub.x, y: sub.y },
+            { x: wf.sourceX, y: wf.sourceY }
+          );
+
+          if (wf.radius >= distPx - 8) {
+            wf.hasSpawnedEchoes!.add(echoKey);
+            // Delayed echo: spawn with small radius after 0.8s equivalent offset
+            const primary = currentNodes.find(n => n.estateId === sub.estateId && n.isEstatePrimary);
+            if (primary) {
+              newWavefronts.push({
+                id: `wf-sub-echo-${wfCounter++}`,
+                sourceX: sub.x,
+                sourceY: sub.y,
+                radius: 5,
+                energy: wf.energy * 0.6,
+                velocity: wf.velocity * 0.5,
+                mode: currentMode,
+                isEcho: true,
+                isEstateLocal: true,
+                estateId: wf.estateId,
+                parentId: wf.id,
+                createdAt: time,
+                hasSpawnedEchoes: new Set()
+              });
+            }
+          }
+        });
+      });
+
       // Prune dead wavefronts
       updated = updated.filter(wf => wf.energy > MIN_ENERGY && wf.radius < MAX_RADIUS);
 

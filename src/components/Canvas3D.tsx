@@ -850,6 +850,58 @@ const Pin3D = ({ pin, hideLabels }: { pin: ModalPin; hideLabels?: boolean }) => 
   );
 };
 
+// ─── Estate Connection Lines ─────────────────────────────────────────
+const EstateConnectionLines = ({ nodes, agentSignals, mode, wavefronts }: {
+  nodes: Node[]; agentSignals: Map<string, AgentSignalState>;
+  mode: CommunicationMode; wavefronts: Wavefront[];
+}) => {
+  const lines = useMemo(() => {
+    const primaries = nodes.filter(n => n.isEstatePrimary && n.estateId);
+    const result: { points: THREE.Vector3[]; color: THREE.Color; pulse: number; id: string }[] = [];
+
+    // Check if any estate-local wavefront is active
+    const hasActiveRelay = wavefronts.some(wf => wf.isEstateLocal);
+
+    primaries.forEach(primary => {
+      const subs = nodes.filter(n => n.estateId === primary.estateId && !n.isEstatePrimary);
+      const px = toWorld(primary.x - CENTER_X);
+      const pz = toWorld(primary.y - CENTER_Y);
+      const pY = getTerrainHeight(px, pz) + 0.15;
+
+      subs.forEach(sub => {
+        const sx = toWorld(sub.x - CENTER_X);
+        const sz = toWorld(sub.y - CENTER_Y);
+        const sY = getTerrainHeight(sx, sz) + 0.15;
+        const snr = agentSignals.get(sub.id)?.snr ?? 0;
+
+        const steps = 8;
+        const points: THREE.Vector3[] = [];
+        for (let s = 0; s <= steps; s++) {
+          const t = s / steps;
+          const lx = px + (sx - px) * t;
+          const lz = pz + (sz - pz) * t;
+          const ly = getTerrainHeight(lx, lz) + 0.15 + (1 - Math.abs(t - 0.5) * 2) * 0.12;
+          points.push(new THREE.Vector3(lx, ly, lz));
+        }
+
+        const baseColor = new THREE.Color(MODE_COLORS[mode]).offsetHSL(0.333, 0, 0.05);
+        result.push({ points, color: baseColor, pulse: hasActiveRelay ? 1 : snr, id: `estate-${primary.id}-${sub.id}` });
+      });
+    });
+    return result;
+  }, [nodes, agentSignals, mode, wavefronts]);
+
+  return (
+    <group>
+      {lines.map(l => (
+        <Line key={l.id} points={l.points} color={l.color}
+          transparent opacity={Math.max(0.08, l.pulse * 0.6)} lineWidth={l.pulse > 0.5 ? 2.5 : 1.5}
+          dashed dashSize={0.08} gapSize={0.04} />
+      ))}
+    </group>
+  );
+};
+
 // ─── Connection lines ────────────────────────────────────────────────
 const ConnectionLines = ({
   orchestrator, agents, agentSignals, mode, masses
@@ -864,7 +916,7 @@ const ConnectionLines = ({
     const oz = toWorld(orchestrator.y - CENTER_Y);
     const oY = getTerrainHeight(ox, oz) + 0.3;
 
-    return agents.map(agent => {
+    return agents.filter(a => !a.estateId || a.isEstatePrimary).map(agent => {
       const ax = toWorld(agent.x - CENTER_X);
       const az = toWorld(agent.y - CENTER_Y);
       const aY = getTerrainHeight(ax, az) + 0.15;
@@ -892,7 +944,6 @@ const ConnectionLines = ({
         );
         points.push(...curve.getPoints(20));
       } else {
-        // Add intermediate terrain-following points
         const steps = 8;
         for (let s = 0; s <= steps; s++) {
           const t = s / steps;
@@ -1397,6 +1448,7 @@ const Scene = ({
         <ConnectionLines orchestrator={orchestratorNode} agents={agents}
           agentSignals={agentSignals} mode={mode} masses={masses} />
       )}
+      <EstateConnectionLines nodes={nodes} agentSignals={agentSignals} mode={mode} wavefronts={wavefronts} />
 
       {wavefronts.map(wf => <Wavefront3D key={wf.id} wf={wf} objects={objects} />)}
       {objects.map(obj => <Object3D key={obj.id} obj={obj} mode={mode} hideLabels={hideLabels} />)}
