@@ -186,7 +186,7 @@ export const useSimulation = (
         }
 
         // Light mirror reflections → beam wavefronts (energy lost per reflection)
-        if (currentMode === 'light' && !wf.isBeam && lightGen < 3 && wf.energy > 0.05) {
+        if (currentMode === 'light' && !wf.isBeam && lightGen < 3 && wf.energy > 0.05 && activeLightChildren < 10) {
           const reflections = phys.computeMirrorReflections(wf.sourceX, wf.sourceY, wf.radius, currentObjects);
           reflections.forEach(refl => {
             if (wf.hasSpawnedEchoes!.has(refl.objectId)) return;
