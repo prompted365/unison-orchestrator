@@ -136,7 +136,7 @@ function getTerrainHeight(noiseX: number, noiseZ: number): number {
  *  Accounts for the -PI/2 X-rotation on the terrain mesh which flips Z.
  *  All entities MUST use this to sit on terrain. */
 function getWorldTerrainY(worldX: number, worldZ: number): number {
-  return getTerrainHeight(worldX, -worldZ);
+  return getWorldTerrainY(worldX, -worldZ);
 }
 
 // ─── Prop types ──────────────────────────────────────────────────────
@@ -270,11 +270,11 @@ const Node3D = ({
   // to catch mesh interpolation valleys. Slope magnitude adds extra lift so nodes
   // on steep terrain don't clip through the surface.
   const PROBE_R = 0.16; // ≈ terrain grid spacing (20/128)
-  const hC = getTerrainHeight(px, pz);
-  const hN = getTerrainHeight(px, pz - PROBE_R);
-  const hS = getTerrainHeight(px, pz + PROBE_R);
-  const hE = getTerrainHeight(px + PROBE_R, pz);
-  const hW = getTerrainHeight(px - PROBE_R, pz);
+  const hC = getWorldTerrainY(px, pz);
+  const hN = getWorldTerrainY(px, pz - PROBE_R);
+  const hS = getWorldTerrainY(px, pz + PROBE_R);
+  const hE = getWorldTerrainY(px + PROBE_R, pz);
+  const hW = getWorldTerrainY(px - PROBE_R, pz);
   const terrainY = Math.max(hC, hN, hS, hE, hW);
   // Slope: max height difference across probes → extra clearance on steep ground
   const slope = Math.max(Math.abs(hN - hS), Math.abs(hE - hW)) / (2 * PROBE_R);
@@ -484,7 +484,7 @@ const Object3D = ({ obj, mode, hideLabels }: { obj: WorldObject; mode: Communica
   const h = toWorld(obj.height);
   const px = toWorld(obj.x + obj.width / 2 - CENTER_X);
   const pz = toWorld(obj.y + obj.height / 2 - CENTER_Y);
-  const terrainY = getTerrainHeight(px, pz);
+  const terrainY = getWorldTerrainY(px, pz);
 
   useFrame((_, dt) => {
     if (!meshRef.current) return;
@@ -625,7 +625,7 @@ const Wavefront3D = ({ wf, objects }: { wf: Wavefront; objects: WorldObject[] })
   const opacity = Math.min(0.6, wf.energy * (isLocal ? 0.85 : 0.7));
   if (opacity < 0.01 || (!wf.isBeam && r > 12)) return null;
 
-  const terrainY = getTerrainHeight(px, pz);
+  const terrainY = getWorldTerrainY(px, pz);
   const emitterY = terrainY + (wf.sourceX === 400 && wf.sourceY === 280 ? 0.3 : 0.15);
 
   if (wf.isBeam && wf.angle != null) {
@@ -814,7 +814,7 @@ const EpitaphEmbers = ({ color, birthAge }: { color: string; birthAge: number })
 const Pin3D = ({ pin, hideLabels }: { pin: ModalPin; hideLabels?: boolean }) => {
   const px = toWorld(pin.x - CENTER_X);
   const pz = toWorld(pin.y - CENTER_Y);
-  const terrainY = getTerrainHeight(px, pz);
+  const terrainY = getWorldTerrainY(px, pz);
   const modeColor = pin.mode === 'acoustic' ? '#ff9933' : pin.mode === 'light' ? '#4ecdc4' : '#9333ea';
   const birthAge = useRef(0);
   const [age, setAge] = useState(0);
@@ -886,12 +886,12 @@ const EstateConnectionLines = ({ nodes, agentSignals, mode, wavefronts }: {
       const subs = nodes.filter(n => n.estateId === primary.estateId && !n.isEstatePrimary);
       const px = toWorld(primary.x - CENTER_X);
       const pz = toWorld(primary.y - CENTER_Y);
-      const pY = getTerrainHeight(px, pz) + 0.15;
+      const pY = getWorldTerrainY(px, pz) + 0.15;
 
       subs.forEach(sub => {
         const sx = toWorld(sub.x - CENTER_X);
         const sz = toWorld(sub.y - CENTER_Y);
-        const sY = getTerrainHeight(sx, sz) + 0.15;
+        const sY = getWorldTerrainY(sx, sz) + 0.15;
         const snr = agentSignals.get(sub.id)?.snr ?? 0;
 
         const steps = 8;
@@ -900,7 +900,7 @@ const EstateConnectionLines = ({ nodes, agentSignals, mode, wavefronts }: {
           const t = s / steps;
           const lx = px + (sx - px) * t;
           const lz = pz + (sz - pz) * t;
-          const ly = getTerrainHeight(lx, lz) + 0.15 + (1 - Math.abs(t - 0.5) * 2) * 0.12;
+          const ly = getWorldTerrainY(lx, lz) + 0.15 + (1 - Math.abs(t - 0.5) * 2) * 0.12;
           points.push(new THREE.Vector3(lx, ly, lz));
         }
 
@@ -934,12 +934,12 @@ const ConnectionLines = ({
   const lines = useMemo(() => {
     const ox = toWorld(orchestrator.x - CENTER_X);
     const oz = toWorld(orchestrator.y - CENTER_Y);
-    const oY = getTerrainHeight(ox, oz) + 0.3;
+    const oY = getWorldTerrainY(ox, oz) + 0.3;
 
     return agents.filter(a => !a.estateId || a.isEstatePrimary).map(agent => {
       const ax = toWorld(agent.x - CENTER_X);
       const az = toWorld(agent.y - CENTER_Y);
-      const aY = getTerrainHeight(ax, az) + 0.15;
+      const aY = getWorldTerrainY(ax, az) + 0.15;
       const sig = agentSignals.get(agent.id);
       const snr = sig?.snr ?? 0;
 
@@ -956,7 +956,7 @@ const ConnectionLines = ({
           pullX += (cx - mx) * w;
           pullZ += (cz - mz) * w;
         });
-        const midY = getTerrainHeight(mx + pullX * 1.5, mz + pullZ * 1.5) + 0.4;
+        const midY = getWorldTerrainY(mx + pullX * 1.5, mz + pullZ * 1.5) + 0.4;
         const curve = new THREE.QuadraticBezierCurve3(
           new THREE.Vector3(ox, oY, oz),
           new THREE.Vector3(mx + pullX * 1.5, midY, mz + pullZ * 1.5),
@@ -969,7 +969,7 @@ const ConnectionLines = ({
           const t = s / steps;
           const lx = ox + (ax - ox) * t;
           const lz = oz + (az - oz) * t;
-          const ly = getTerrainHeight(lx, lz) + 0.15 + (1 - Math.abs(t - 0.5) * 2) * 0.15;
+          const ly = getWorldTerrainY(lx, lz) + 0.15 + (1 - Math.abs(t - 0.5) * 2) * 0.15;
           points.push(new THREE.Vector3(lx, ly, lz));
         }
       }
@@ -1252,7 +1252,7 @@ const CockpitCamera = ({ targetNode, onExit }: { targetNode: Node; onExit: () =>
   const targetPos = useMemo(() => {
     const px = toWorld(targetNode.x - CENTER_X);
     const pz = toWorld(targetNode.y - CENTER_Y);
-    return new THREE.Vector3(px, getTerrainHeight(px, pz) + 0.5, pz);
+    return new THREE.Vector3(px, getWorldTerrainY(px, pz) + 0.5, pz);
   }, [targetNode]);
 
   useEffect(() => { camera.position.copy(targetPos); yaw.current = 0; pitch.current = 0; }, [camera, targetPos]);
@@ -1340,7 +1340,7 @@ const StoryHighlight = ({ obj }: { obj: WorldObject }) => {
   const ringRef = useRef<THREE.Mesh>(null);
   const px = toWorld(obj.x + obj.width / 2 - CENTER_X);
   const pz = toWorld(obj.y + obj.height / 2 - CENTER_Y);
-  const ty = getTerrainHeight(px, pz);
+  const ty = getWorldTerrainY(px, pz);
   useFrame(() => {
     if (!ringRef.current) return;
     const t = Date.now() * 0.003;
