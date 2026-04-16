@@ -207,8 +207,11 @@ export const useSimulation = (
       // The Primary "translates" the global signal into estate-local context.
       // Sub-nodes can't hear global wavefronts — they only respond to these relays.
       const estatePrimaries = currentNodes.filter(n => n.isEstatePrimary && n.estateId);
+      // [CE] Cap estate-local wavefronts to prevent runaway pile-up
+      const activeEstateWfs = updated.filter(w => w.isEstateLocal).length + newWavefronts.filter(w => w.isEstateLocal).length;
       updated.forEach(wf => {
         if (wf.isEstateLocal) return; // don't relay already-local signals
+        if (activeEstateWfs >= 6) return; // [CE] Hard cap on estate-local wavefronts
         if (!wf.hasSpawnedEchoes) wf.hasSpawnedEchoes = new Set();
 
         estatePrimaries.forEach(primary => {
