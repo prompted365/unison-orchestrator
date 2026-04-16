@@ -259,16 +259,21 @@ const Node3D = ({
 
   const px = toWorld(node.x - CENTER_X);
   const pz = toWorld(node.y - CENTER_Y);
-  // [CE] Sample terrain at multiple nearby points and take the max to prevent
-  // nodes clipping through the mesh due to interpolation mismatch
-  const terrainY = Math.max(
-    getTerrainHeight(px, pz),
-    getTerrainHeight(px + 0.05, pz),
-    getTerrainHeight(px - 0.05, pz),
-    getTerrainHeight(px, pz + 0.05),
-    getTerrainHeight(px, pz - 0.05)
-  );
-  const baseY = Math.max(0.08, terrainY + (isOrch ? 0.3 : isEstatePrimary ? 0.25 : 0.15));
+  // [CE] 5-ray terrain probe: sample center + cardinal offsets at grid-cell radius (~0.16)
+  // to catch mesh interpolation valleys. Slope magnitude adds extra lift so nodes
+  // on steep terrain don't clip through the surface.
+  const PROBE_R = 0.16; // ≈ terrain grid spacing (20/128)
+  const hC = getTerrainHeight(px, pz);
+  const hN = getTerrainHeight(px, pz - PROBE_R);
+  const hS = getTerrainHeight(px, pz + PROBE_R);
+  const hE = getTerrainHeight(px + PROBE_R, pz);
+  const hW = getTerrainHeight(px - PROBE_R, pz);
+  const terrainY = Math.max(hC, hN, hS, hE, hW);
+  // Slope: max height difference across probes → extra clearance on steep ground
+  const slope = Math.max(Math.abs(hN - hS), Math.abs(hE - hW)) / (2 * PROBE_R);
+  const slopeLift = Math.min(slope * 0.12, 0.15); // cap at 0.15 extra
+  const entityClearance = isOrch ? 0.3 : isEstatePrimary ? 0.25 : 0.15;
+  const baseY = Math.max(0.08, terrainY + entityClearance + slopeLift);
 
   return (
     <group position={[px, baseY, pz]}>
