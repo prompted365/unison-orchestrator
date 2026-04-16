@@ -124,6 +124,8 @@ export const useSimulation = (
 
       // Spawn echo/reflection wavefronts
       const newWavefronts: Wavefront[] = [];
+      // [CE] Cap light-interaction wavefronts (beams + focused) to prevent pile-up
+      const activeLightChildren = updated.filter(w => w.isBeam || (w.lightGeneration ?? 0) > 0).length;
 
       updated.forEach(wf => {
         if (!wf.hasSpawnedEchoes) wf.hasSpawnedEchoes = new Set();
