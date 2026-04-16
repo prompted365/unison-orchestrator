@@ -182,6 +182,7 @@ export interface Wavefront {
   angle?: number;    // [CE] radians, beam travel direction
   createdAt: number; // [CE] wall-clock ms — not governance tic (see D9)
   hasSpawnedEchoes?: Set<string>; // [CE] prevents duplicate echo spawning per object
+  lightGeneration?: number; // [CE] interaction depth — caps lens/mirror cascade at 3 bounces
 }
 
 export interface AgentSignalState {
