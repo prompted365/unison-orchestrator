@@ -136,7 +136,7 @@ function getTerrainHeight(noiseX: number, noiseZ: number): number {
  *  Accounts for the -PI/2 X-rotation on the terrain mesh which flips Z.
  *  All entities MUST use this to sit on terrain. */
 function getWorldTerrainY(worldX: number, worldZ: number): number {
-  return getWorldTerrainY(worldX, -worldZ);
+  return getTerrainHeight(worldX, -worldZ);
 }
 
 // ─── Prop types ──────────────────────────────────────────────────────
