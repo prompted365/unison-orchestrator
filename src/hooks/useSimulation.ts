@@ -247,6 +247,7 @@ export const useSimulation = (
       const estateSubNodes = currentNodes.filter(n => n.estateId && !n.isEstatePrimary);
       updated.forEach(wf => {
         if (!wf.isEstateLocal || !wf.estateId) return;
+        if (wf.isEcho) return; // [CE] Prevent cascade: sub-echoes must NOT trigger more sub-echoes
         if (!wf.hasSpawnedEchoes) wf.hasSpawnedEchoes = new Set();
 
         estateSubNodes.forEach(sub => {
