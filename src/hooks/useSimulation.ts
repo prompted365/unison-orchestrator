@@ -83,7 +83,7 @@ export const useSimulation = (
           const dx = Math.cos(wf.angle) * wf.velocity * dt;
           const dy = Math.sin(wf.angle) * wf.velocity * dt;
           const age = (time - wf.createdAt) / 1000;
-          const newEnergy = wf.energy * (1 - age / 2.5); // fade over ~2.5s
+          const newEnergy = wf.energy * (1 - age / 1.5); // [CE] beams fade in ~1.5s — light disperses
           return {
             ...wf,
             sourceX: wf.sourceX + dx,
