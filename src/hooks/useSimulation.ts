@@ -83,7 +83,7 @@ export const useSimulation = (
           const dx = Math.cos(wf.angle) * wf.velocity * dt;
           const dy = Math.sin(wf.angle) * wf.velocity * dt;
           const age = (time - wf.createdAt) / 1000;
-          const newEnergy = wf.energy * (1 - age / 2.5); // fade over ~2.5s
+          const newEnergy = wf.energy * (1 - age / 1.5); // [CE] beams fade in ~1.5s — light disperses
           return {
             ...wf,
             sourceX: wf.sourceX + dx,
@@ -124,6 +124,8 @@ export const useSimulation = (
 
       // Spawn echo/reflection wavefronts
       const newWavefronts: Wavefront[] = [];
+      // [CE] Cap light-interaction wavefronts (beams + focused) to prevent pile-up
+      const activeLightChildren = updated.filter(w => w.isBeam || (w.lightGeneration ?? 0) > 0).length;
 
       updated.forEach(wf => {
         if (!wf.hasSpawnedEchoes) wf.hasSpawnedEchoes = new Set();
@@ -156,46 +158,55 @@ export const useSimulation = (
           });
         }
 
-        // Light lens focus
-        if (currentMode === 'light' && !wf.isEcho) {
+        // Light lens focus — each pass through a lens disperses energy (no infinite cascade)
+        const lightGen = wf.lightGeneration ?? 0;
+        if (currentMode === 'light' && !wf.isEcho && lightGen < 3 && wf.energy > 0.05 && activeLightChildren < 10) {
           const focuses = phys.computeLensFocus(wf.sourceX, wf.sourceY, wf.radius, currentObjects);
           focuses.forEach(focus => {
             if (wf.hasSpawnedEchoes!.has(focus.objectId)) return;
             wf.hasSpawnedEchoes!.add(focus.objectId);
+            // Each lens pass loses ~50% energy (dispersal, chromatic aberration)
+            const dispersedEnergy = wf.energy * focus.focusFactor * 0.5;
+            if (dispersedEnergy < MIN_ENERGY) return;
             newWavefronts.push({
               id: `wf-focus-${wfCounter++}`,
               sourceX: focus.x,
               sourceY: focus.y,
               radius: 3,
-              energy: wf.energy * focus.focusFactor,
+              energy: dispersedEnergy,
               velocity: wf.velocity * 0.8,
               mode: currentMode,
               isEcho: false,
               parentId: wf.id,
+              lightGeneration: lightGen + 1,
               createdAt: time,
               hasSpawnedEchoes: new Set()
             });
           });
         }
 
-        // Light mirror reflections → spawn beam wavefronts
-        if (currentMode === 'light' && !wf.isBeam) {
+        // Light mirror reflections → beam wavefronts (energy lost per reflection)
+        if (currentMode === 'light' && !wf.isBeam && lightGen < 3 && wf.energy > 0.05 && activeLightChildren < 10) {
           const reflections = phys.computeMirrorReflections(wf.sourceX, wf.sourceY, wf.radius, currentObjects);
           reflections.forEach(refl => {
             if (wf.hasSpawnedEchoes!.has(refl.objectId)) return;
             wf.hasSpawnedEchoes!.add(refl.objectId);
+            // Each reflection absorbs ~30% (surface imperfection, scattering)
+            const reflectedEnergy = refl.energy * wf.energy * 0.7;
+            if (reflectedEnergy < MIN_ENERGY) return;
             newWavefronts.push({
               id: `wf-refl-${wfCounter++}`,
               sourceX: refl.x,
               sourceY: refl.y,
               radius: 3,
-              energy: refl.energy * wf.energy,
+              energy: reflectedEnergy,
               velocity: wf.velocity,
               mode: currentMode,
               isEcho: false,
-              isBeam: true, // directional beam, not expanding sphere
+              isBeam: true,
               parentId: wf.id,
               angle: refl.angle,
+              lightGeneration: lightGen + 1,
               createdAt: time,
               hasSpawnedEchoes: new Set()
             });
