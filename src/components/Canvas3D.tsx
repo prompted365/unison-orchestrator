@@ -124,12 +124,19 @@ function terrainNoise(x: number, z: number): number {
   return h;
 }
 
-/** [CE] Sample terrain height at world-space x, z coordinates.
- *  Returns Y in world units. All entities MUST use this to sit on terrain.
- *  Talos: buildings, infrastructure, and agents all call this for ground-truth Y. */
-function getTerrainHeight(worldX: number, worldZ: number): number {
-  const n = terrainNoise(worldX * 0.5 + 50, worldZ * 0.5 + 50);
+/** [CE] Raw terrain noise height for a given noise-space coordinate.
+ *  Used internally by the terrain mesh (PlaneGeometry in XY, rotated to XZ).
+ *  Do NOT call directly for entity positioning — use getWorldTerrainY instead. */
+function getTerrainHeight(noiseX: number, noiseZ: number): number {
+  const n = terrainNoise(noiseX * 0.5 + 50, noiseZ * 0.5 + 50);
   return (n - 0.45) * 1.4; // [VG] Range: ~-0.3 to ~0.8 world units
+}
+
+/** [CE] Get terrain height at a WORLD-SPACE position (x, z).
+ *  Accounts for the -PI/2 X-rotation on the terrain mesh which flips Z.
+ *  All entities MUST use this to sit on terrain. */
+function getWorldTerrainY(worldX: number, worldZ: number): number {
+  return getTerrainHeight(worldX, -worldZ);
 }
 
 // ─── Prop types ──────────────────────────────────────────────────────
