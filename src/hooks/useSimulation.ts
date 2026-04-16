@@ -160,7 +160,7 @@ export const useSimulation = (
 
         // Light lens focus — each pass through a lens disperses energy (no infinite cascade)
         const lightGen = wf.lightGeneration ?? 0;
-        if (currentMode === 'light' && !wf.isEcho && lightGen < 3 && wf.energy > 0.05) {
+        if (currentMode === 'light' && !wf.isEcho && lightGen < 3 && wf.energy > 0.05 && activeLightChildren < 10) {
           const focuses = phys.computeLensFocus(wf.sourceX, wf.sourceY, wf.radius, currentObjects);
           focuses.forEach(focus => {
             if (wf.hasSpawnedEchoes!.has(focus.objectId)) return;
