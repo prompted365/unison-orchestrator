@@ -259,8 +259,16 @@ const Node3D = ({
 
   const px = toWorld(node.x - CENTER_X);
   const pz = toWorld(node.y - CENTER_Y);
-  const terrainY = getTerrainHeight(px, pz);
-  const baseY = terrainY + (isOrch ? 0.3 : 0.15);
+  // [CE] Sample terrain at multiple nearby points and take the max to prevent
+  // nodes clipping through the mesh due to interpolation mismatch
+  const terrainY = Math.max(
+    getTerrainHeight(px, pz),
+    getTerrainHeight(px + 0.05, pz),
+    getTerrainHeight(px - 0.05, pz),
+    getTerrainHeight(px, pz + 0.05),
+    getTerrainHeight(px, pz - 0.05)
+  );
+  const baseY = Math.max(0.08, terrainY + (isOrch ? 0.3 : isEstatePrimary ? 0.25 : 0.15));
 
   return (
     <group position={[px, baseY, pz]}>
